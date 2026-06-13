@@ -1,6 +1,6 @@
 ﻿namespace Presentation.Users.Input;
 
-public record LoginRequestDTO(
+public record LoginRequest(
     string Email,
     string Username,
     string Password

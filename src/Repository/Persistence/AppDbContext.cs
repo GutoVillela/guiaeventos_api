@@ -16,7 +16,6 @@ public class AppDbContext : DbContext
     public DbSet<Author> Authors => Set<Author>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Banner> Banners => Set<Banner>();
-    public DbSet<BannerItem> BannerItems => Set<BannerItem>();
     public DbSet<Post> Posts => Set<Post>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -31,7 +30,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Author>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Category>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Banner>().HasQueryFilter(x => !x.IsDeleted);
-        modelBuilder.Entity<BannerItem>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Post>().HasQueryFilter(x => !x.IsDeleted);
     }
 }

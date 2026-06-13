@@ -28,3 +28,6 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "WebAPI.dll"]
+
+# docker build -f src/WebAPI/Dockerfile -t gutovillela/guiaeventos-webapi:0.0.1 .
+# docker push gutovillela/guiaeventos-webapi:0.0.1

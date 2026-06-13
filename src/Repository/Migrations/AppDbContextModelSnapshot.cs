@@ -82,6 +82,10 @@ namespace Repository.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetime");
 
+                    b.Property<string>("Website")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AdvertiserId");
@@ -100,6 +104,10 @@ namespace Repository.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    b.Property<string>("Bio")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetime");
@@ -147,40 +155,49 @@ namespace Repository.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<DateTimeOffset?>("EndsAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("LinkUrl")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
+                    b.Property<int>("Order")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTimeOffset?>("StartsAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetime");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Order");
 
                     b.ToTable("banners", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Entities.BannerItem", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("datetime");
-
-                    b.Property<string>("CreatedBy")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<DateTimeOffset?>("UpdatedAt")
-                        .HasColumnType("datetime");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("banner_items", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Category", b =>
@@ -230,6 +247,10 @@ namespace Repository.Migrations
                     b.Property<int>("AuthorId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("datetime");
 
@@ -241,12 +262,35 @@ namespace Repository.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<DateTimeOffset?>("PublishedAt")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(350)
+                        .HasColumnType("varchar(350)");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)");
+
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetime");
 
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
+
+                    b.HasIndex("PublishedAt");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
 
                     b.ToTable("posts", (string)null);
                 });
@@ -270,6 +314,11 @@ namespace Repository.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("varchar(200)");
 
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
@@ -283,11 +332,15 @@ namespace Repository.Migrations
 
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasColumnType("longtext");
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Username")
                         .IsUnique();
 
                     b.ToTable("users", (string)null);
@@ -330,20 +383,161 @@ namespace Repository.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.OwnsMany("Domain.ValueObjects.Image", "Images", b1 =>
+                        {
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int");
+
+                            b1.Property<int>("AdvertisementId")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("AltText")
+                                .HasMaxLength(300)
+                                .HasColumnType("varchar(300)");
+
+                            b1.Property<string>("Url")
+                                .IsRequired()
+                                .HasMaxLength(500)
+                                .HasColumnType("varchar(500)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("AdvertisementId");
+
+                            b1.ToTable("advertisement_images", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("AdvertisementId");
+                        });
+
+                    b.OwnsOne("Domain.ValueObjects.Phone", "Phone", b1 =>
+                        {
+                            b1.Property<int>("AdvertisementId")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("AreaCode")
+                                .IsRequired()
+                                .HasMaxLength(5)
+                                .HasColumnType("varchar(5)")
+                                .HasColumnName("Phone_AreaCode");
+
+                            b1.Property<string>("Number")
+                                .IsRequired()
+                                .HasMaxLength(15)
+                                .HasColumnType("varchar(15)")
+                                .HasColumnName("Phone_Number");
+
+                            b1.HasKey("AdvertisementId");
+
+                            b1.ToTable("advertisements");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AdvertisementId");
+                        });
+
                     b.Navigation("Advertiser");
+
+                    b.Navigation("Images");
+
+                    b.Navigation("Phone");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Banner", b =>
+                {
+                    b.OwnsOne("Domain.ValueObjects.Image", "Image", b1 =>
+                        {
+                            b1.Property<int>("BannerId")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("AltText")
+                                .HasMaxLength(300)
+                                .HasColumnType("varchar(300)")
+                                .HasColumnName("Image_AltText");
+
+                            b1.Property<string>("Url")
+                                .IsRequired()
+                                .HasMaxLength(500)
+                                .HasColumnType("varchar(500)")
+                                .HasColumnName("Image_Url");
+
+                            b1.HasKey("BannerId");
+
+                            b1.ToTable("banners");
+
+                            b1.WithOwner()
+                                .HasForeignKey("BannerId");
+                        });
+
+                    b.Navigation("Image")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Domain.Entities.Post", b =>
                 {
-                    b.HasOne("Domain.Entities.Author", null)
+                    b.HasOne("Domain.Entities.Author", "Author")
                         .WithMany("Posts")
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.OwnsOne("Domain.ValueObjects.Image", "CoverImage", b1 =>
+                        {
+                            b1.Property<int>("PostId")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("AltText")
+                                .HasMaxLength(300)
+                                .HasColumnType("varchar(300)")
+                                .HasColumnName("CoverImage_AltText");
+
+                            b1.Property<string>("Url")
+                                .IsRequired()
+                                .HasMaxLength(500)
+                                .HasColumnType("varchar(500)")
+                                .HasColumnName("CoverImage_Url");
+
+                            b1.HasKey("PostId");
+
+                            b1.ToTable("posts");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PostId");
+                        });
+
+                    b.Navigation("Author");
+
+                    b.Navigation("CoverImage")
                         .IsRequired();
                 });
 
             modelBuilder.Entity("Domain.Entities.User", b =>
                 {
+                    b.OwnsOne("Domain.ValueObjects.Phone", "Phone", b1 =>
+                        {
+                            b1.Property<int>("UserId")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("AreaCode")
+                                .IsRequired()
+                                .HasMaxLength(5)
+                                .HasColumnType("varchar(5)")
+                                .HasColumnName("Phone_AreaCode");
+
+                            b1.Property<string>("Number")
+                                .IsRequired()
+                                .HasMaxLength(15)
+                                .HasColumnType("varchar(15)")
+                                .HasColumnName("Phone_Number");
+
+                            b1.HasKey("UserId");
+
+                            b1.ToTable("users");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UserId");
+                        });
+
                     b.OwnsOne("Domain.ValueObjects.Password", "Password", b1 =>
                         {
                             b1.Property<int>("UserId")
@@ -365,6 +559,8 @@ namespace Repository.Migrations
 
                     b.Navigation("Password")
                         .IsRequired();
+
+                    b.Navigation("Phone");
                 });
 
             modelBuilder.Entity("Domain.Entities.Place", b =>

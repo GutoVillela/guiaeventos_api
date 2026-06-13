@@ -23,6 +23,7 @@ namespace Repository.Migrations
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
                     Email = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    Bio = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: false),
                     CreatedBy = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: true),
@@ -35,28 +36,20 @@ namespace Repository.Migrations
                 .Annotation("MySQL:Charset", "utf8mb4");
 
             migrationBuilder.CreateTable(
-                name: "banner_items",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
-                    CreatedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: false),
-                    CreatedBy = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false),
-                    UpdatedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "tinyint(1)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_banner_items", x => x.Id);
-                })
-                .Annotation("MySQL:Charset", "utf8mb4");
-
-            migrationBuilder.CreateTable(
                 name: "banners",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    Title = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: true),
+                    LinkUrl = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: false),
+                    Image_Url = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false),
+                    Image_AltText = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: true),
+                    Order = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
+                    StartsAt = table.Column<DateTimeOffset>(type: "datetime", nullable: true),
+                    EndsAt = table.Column<DateTimeOffset>(type: "datetime", nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: false),
                     CreatedBy = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: true),
@@ -94,9 +87,12 @@ namespace Repository.Migrations
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
                     Name = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
-                    Username = table.Column<string>(type: "longtext", nullable: false),
+                    Username = table.Column<string>(type: "varchar(100)", maxLength: 100, nullable: false),
                     Email = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: false),
+                    IsActive = table.Column<bool>(type: "tinyint(1)", nullable: false, defaultValue: true),
                     PasswordHash = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false),
+                    Phone_AreaCode = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: true),
+                    Phone_Number = table.Column<string>(type: "varchar(15)", maxLength: 15, nullable: true),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: false),
                     CreatedBy = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false),
                     UpdatedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: true),
@@ -114,6 +110,13 @@ namespace Repository.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    Title = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: false),
+                    Slug = table.Column<string>(type: "varchar(350)", maxLength: 350, nullable: false),
+                    Summary = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false),
+                    Content = table.Column<string>(type: "longtext", nullable: false),
+                    CoverImage_Url = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false),
+                    CoverImage_AltText = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: true),
+                    PublishedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: true),
                     AuthorId = table.Column<int>(type: "int", nullable: false),
                     CreatedAt = table.Column<DateTimeOffset>(type: "datetime", nullable: false),
                     CreatedBy = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false),
@@ -142,6 +145,9 @@ namespace Repository.Migrations
                     Description = table.Column<string>(type: "longtext", nullable: false),
                     Summary = table.Column<string>(type: "varchar(1000)", maxLength: 1000, nullable: true),
                     Status = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, defaultValue: "PendingApproval"),
+                    Website = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: true),
+                    Phone_AreaCode = table.Column<string>(type: "varchar(5)", maxLength: 5, nullable: true),
+                    Phone_Number = table.Column<string>(type: "varchar(15)", maxLength: 15, nullable: true),
                     AdvertiserId = table.Column<int>(type: "int", nullable: false),
                     Type = table.Column<string>(type: "varchar(13)", maxLength: 13, nullable: false),
                     Location_Street = table.Column<string>(type: "varchar(200)", maxLength: 200, nullable: true),
@@ -195,10 +201,37 @@ namespace Repository.Migrations
                 })
                 .Annotation("MySQL:Charset", "utf8mb4");
 
+            migrationBuilder.CreateTable(
+                name: "advertisement_images",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySQL:ValueGenerationStrategy", MySQLValueGenerationStrategy.IdentityColumn),
+                    Url = table.Column<string>(type: "varchar(500)", maxLength: 500, nullable: false),
+                    AltText = table.Column<string>(type: "varchar(300)", maxLength: 300, nullable: true),
+                    AdvertisementId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_advertisement_images", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_advertisement_images_advertisements_AdvertisementId",
+                        column: x => x.AdvertisementId,
+                        principalTable: "advertisements",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySQL:Charset", "utf8mb4");
+
             migrationBuilder.CreateIndex(
                 name: "IX_advertisement_categories_CategoriesId",
                 table: "advertisement_categories",
                 column: "CategoriesId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_advertisement_images_AdvertisementId",
+                table: "advertisement_images",
+                column: "AdvertisementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_advertisements_AdvertiserId",
@@ -217,6 +250,16 @@ namespace Repository.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_banners_IsActive",
+                table: "banners",
+                column: "IsActive");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_banners_Order",
+                table: "banners",
+                column: "Order");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_categories_Name",
                 table: "categories",
                 column: "Name",
@@ -228,9 +271,26 @@ namespace Repository.Migrations
                 column: "AuthorId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_posts_PublishedAt",
+                table: "posts",
+                column: "PublishedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_posts_Slug",
+                table: "posts",
+                column: "Slug",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_users_Email",
                 table: "users",
                 column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_users_Username",
+                table: "users",
+                column: "Username",
                 unique: true);
         }
 
@@ -241,7 +301,7 @@ namespace Repository.Migrations
                 name: "advertisement_categories");
 
             migrationBuilder.DropTable(
-                name: "banner_items");
+                name: "advertisement_images");
 
             migrationBuilder.DropTable(
                 name: "banners");
@@ -250,10 +310,10 @@ namespace Repository.Migrations
                 name: "posts");
 
             migrationBuilder.DropTable(
-                name: "advertisements");
+                name: "categories");
 
             migrationBuilder.DropTable(
-                name: "categories");
+                name: "advertisements");
 
             migrationBuilder.DropTable(
                 name: "authors");
