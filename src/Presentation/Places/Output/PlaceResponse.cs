@@ -5,6 +5,8 @@ namespace Presentation.Places.Output;
 
 public record CategorySummary(int Id, string Name);
 
+public record ImageResponse(string Url, string? AltText);
+
 public record PlaceResponse(
     int Id,
     string Name,
@@ -14,8 +16,10 @@ public record PlaceResponse(
     string CreatedBy,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
+    string? Phone,
     LocationResponse Location,
-    IEnumerable<CategorySummary> Categories
+    IEnumerable<CategorySummary> Categories,
+    IEnumerable<ImageResponse> Images
 )
 {
     public static PlaceResponse FromEntity(Place place) => new(
@@ -27,8 +31,10 @@ public record PlaceResponse(
         place.CreatedBy,
         place.CreatedAt,
         place.UpdatedAt,
+        place.Phone?.ToString(),
         LocationResponse.FromAddress(place.Location),
-        place.Categories.Select(c => new CategorySummary(c.Id, c.Name))
+        place.Categories.Select(c => new CategorySummary(c.Id, c.Name)),
+        place.Images.Select(i => new ImageResponse(i.Url, i.AltText))
     );
 }
 

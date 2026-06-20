@@ -1,4 +1,5 @@
 using Domain.Entities;
+using Domain.ValueObjects;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +20,7 @@ public class ServiceModule : BaseModule
         var group = app.MapGroup(BasePath).WithTags("Services");
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync);
+        group.MapPost("/", CreateAsync).RequireAuthorization();
         group.MapPut("/{id:int}", UpdateAsync);
         group.MapDelete("/{id:int}", DeleteAsync);
     }
@@ -60,6 +61,9 @@ public class ServiceModule : BaseModule
         [FromBody] CreateServiceRequest request,
         CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(request.PhoneAreaCode) || string.IsNullOrWhiteSpace(request.PhoneNumber))
+            return Results.BadRequest("O telefone (WhatsApp) é obrigatório.");
+
         var categoryIds = request.CategoryIds?.ToList() ?? [];
         if (categoryIds.Count == 0)
             return Results.BadRequest("Pelo menos uma categoria deve ser informada.");
@@ -80,6 +84,7 @@ public class ServiceModule : BaseModule
             CreatedBy = "system"
         };
         service.SetCategories(categories);
+        service.SetPhone(Phone.Create(request.PhoneAreaCode, request.PhoneNumber));
 
         db.Services.Add(service);
         await db.SaveChangesAsync(ct);

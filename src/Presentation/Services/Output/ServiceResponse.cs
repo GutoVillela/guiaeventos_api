@@ -13,6 +13,7 @@ public record ServiceResponse(
     string CreatedBy,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
+    string? Phone,
     IEnumerable<CategorySummary> Categories
 )
 {
@@ -25,6 +26,7 @@ public record ServiceResponse(
         service.CreatedBy,
         service.CreatedAt,
         service.UpdatedAt,
+        service.Phone?.ToString(),
         service.Categories.Select(c => new CategorySummary(c.Id, c.Name))
     );
 }

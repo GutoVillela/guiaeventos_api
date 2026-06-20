@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Presentation.FileStorage;
 using Presentation.Places.Input;
 using Presentation.Places.Output;
 using Repository.Persistence;
@@ -20,7 +21,7 @@ public class PlaceModule : BaseModule
         var group = app.MapGroup(BasePath).WithTags("Places");
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync);
+        group.MapPost("/", CreateAsync).RequireAuthorization().DisableAntiforgery();
         group.MapPut("/{id:int}", UpdateAsync);
         group.MapDelete("/{id:int}", DeleteAsync);
     }
@@ -34,6 +35,7 @@ public class PlaceModule : BaseModule
         var total = await db.Places.CountAsync(ct);
         var items = await db.Places
             .Include(x => x.Categories)
+            .Include(x => x.Images)
             .OrderByDescending(x => x.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -49,6 +51,7 @@ public class PlaceModule : BaseModule
     {
         var place = await db.Places
             .Include(x => x.Categories)
+            .Include(x => x.Images)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (place is null)
             return Results.NotFound();
@@ -58,14 +61,40 @@ public class PlaceModule : BaseModule
 
     private async Task<IResult> CreateAsync(
         [FromServices] AppDbContext db,
-        [FromBody] CreatePlaceRequest request,
+        [FromServices] IFileStorageService fileStorage,
+        [FromForm] int advertiserId,
+        [FromForm] string name,
+        [FromForm] string description,
+        [FromForm] string? summary,
+        [FromForm] int[] categoryIds,
+        [FromForm] string street,
+        [FromForm] string? neighborhood,
+        [FromForm] string city,
+        [FromForm] string state,
+        [FromForm] string country,
+        [FromForm] string? zipCode,
+        [FromForm] string? number,
+        [FromForm] string? complement,
+        [FromForm] string? referencePoint,
+        [FromForm] string phoneAreaCode,
+        [FromForm] string phoneNumber,
+        [FromForm] int mainImageIndex,
+        IFormFileCollection images,
         CancellationToken ct)
     {
-        var categoryIds = request.CategoryIds?.ToList() ?? [];
-        if (categoryIds.Count == 0)
+        if (string.IsNullOrWhiteSpace(phoneAreaCode) || string.IsNullOrWhiteSpace(phoneNumber))
+            return Results.BadRequest("O telefone (WhatsApp) é obrigatório.");
+
+        if (images == null || images.Count == 0)
+            return Results.BadRequest("Pelo menos uma imagem deve ser enviada.");
+
+        if (mainImageIndex < 0 || mainImageIndex >= images.Count)
+            return Results.BadRequest("Índice da imagem principal inválido.");
+
+        if (categoryIds == null || categoryIds.Length == 0)
             return Results.BadRequest("Pelo menos uma categoria deve ser informada.");
 
-        var advertiser = await db.Users.FindAsync([request.AdvertiserId], ct);
+        var advertiser = await db.Users.FindAsync([advertiserId], ct);
         if (advertiser is null)
             return Results.BadRequest("Advertiser not found.");
 
@@ -73,25 +102,40 @@ public class PlaceModule : BaseModule
             .Where(c => categoryIds.Contains(c.Id))
             .ToListAsync(ct);
 
-        if (categories.Count != categoryIds.Count)
+        if (categories.Count != categoryIds.Length)
             return Results.BadRequest("Uma ou mais categorias informadas não foram encontradas.");
 
         var location = Address.Create(
-            request.Street,
-            request.Neighborhood ?? string.Empty,
-            request.City,
-            request.State,
-            request.Country,
-            request.ZipCode ?? string.Empty,
-            request.Number ?? string.Empty,
-            request.Complement ?? string.Empty,
-            request.ReferencePoint ?? string.Empty);
+            street,
+            neighborhood ?? string.Empty,
+            city,
+            state,
+            country,
+            zipCode ?? string.Empty,
+            number ?? string.Empty,
+            complement ?? string.Empty,
+            referencePoint ?? string.Empty);
 
-        var place = new Place(request.Name, request.Description, request.Summary ?? string.Empty, advertiser, location)
+        var place = new Place(name, description, summary ?? string.Empty, advertiser, location)
         {
             CreatedBy = "system"
         };
         place.SetCategories(categories);
+        place.SetPhone(Phone.Create(phoneAreaCode, phoneNumber));
+
+        // Upload images, placing main image first
+        var orderedFiles = images.ToList();
+        var mainFile = orderedFiles[mainImageIndex];
+        orderedFiles.RemoveAt(mainImageIndex);
+        orderedFiles.Insert(0, mainFile);
+
+        var imageList = new List<Image>();
+        foreach (var file in orderedFiles)
+        {
+            var url = await fileStorage.UploadAsync(file, ct);
+            imageList.Add(Image.Create(url, null));
+        }
+        place.SetImages(imageList);
 
         db.Places.Add(place);
         await db.SaveChangesAsync(ct);

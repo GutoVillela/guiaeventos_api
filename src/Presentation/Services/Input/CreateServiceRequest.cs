@@ -5,5 +5,7 @@ public record CreateServiceRequest(
     string Description,
     string? Summary,
     int AdvertiserId,
-    IEnumerable<int> CategoryIds
+    IEnumerable<int> CategoryIds,
+    string PhoneAreaCode,
+    string PhoneNumber
 );

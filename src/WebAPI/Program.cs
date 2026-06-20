@@ -1,7 +1,9 @@
 using System.Text;
 using Carter;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Presentation;
 using Repository;
@@ -77,6 +79,15 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.UseCors();
 }
+
+var uploadPath = builder.Configuration["FileStorage:LocalPath"]
+    ?? Path.Combine(Path.GetTempPath(), "guiaeventos", "uploads");
+Directory.CreateDirectory(uploadPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadPath),
+    RequestPath = "/uploads"
+});
 
 app.UseHttpsRedirection();
 app.UseAuthentication();
