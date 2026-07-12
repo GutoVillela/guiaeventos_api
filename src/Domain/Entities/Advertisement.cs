@@ -16,6 +16,12 @@ public abstract class Advertisement : Entity
     public IList<Category> Categories { get; private set; } = new List<Category>();
     public IList<Image> Images { get; private set; } = new List<Image>();
 
+    public string? RejectionReason { get; private set; }
+    public string? RejectedBy { get; private set; }
+    public DateTimeOffset? RejectedAt { get; private set; }
+    public string? ApprovedBy { get; private set; }
+    public DateTimeOffset? ApprovedAt { get; private set; }
+
     protected Advertisement() { }
 
     protected Advertisement(string name, string description, string summary, User advertiser)
@@ -74,15 +80,20 @@ public abstract class Advertisement : Entity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    public void Approve()
+    public void Approve(string approvedBy)
     {
         Status = EAdvertisementStatus.Approved;
+        ApprovedBy = approvedBy;
+        ApprovedAt = DateTimeOffset.UtcNow;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    public void Reject()
+    public void Reject(string rejectedBy, string? reason = null)
     {
         Status = EAdvertisementStatus.Rejected;
+        RejectedBy = rejectedBy;
+        RejectedAt = DateTimeOffset.UtcNow;
+        RejectionReason = reason;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

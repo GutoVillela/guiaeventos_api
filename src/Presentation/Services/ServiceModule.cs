@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Domain.Entities;
 using Domain.Enums;
 using Domain.ValueObjects;
@@ -153,6 +154,7 @@ public class ServiceModule : BaseModule
     private async Task<IResult> ApproveAsync(
         [FromServices] AppDbContext db,
         [FromRoute] int id,
+        ClaimsPrincipal user,
         CancellationToken ct)
     {
         var service = await db.Services
@@ -160,7 +162,8 @@ public class ServiceModule : BaseModule
         if (service is null)
             return Results.NotFound();
 
-        service.Approve();
+        var approvedBy = user.FindFirstValue("unique_name") ?? user.FindFirstValue("sub") ?? "system";
+        service.Approve(approvedBy);
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(ServiceResponse.FromEntity(service));
@@ -169,6 +172,8 @@ public class ServiceModule : BaseModule
     private async Task<IResult> RejectAsync(
         [FromServices] AppDbContext db,
         [FromRoute] int id,
+        [FromBody] RejectRequest request,
+        ClaimsPrincipal user,
         CancellationToken ct)
     {
         var service = await db.Services
@@ -176,7 +181,8 @@ public class ServiceModule : BaseModule
         if (service is null)
             return Results.NotFound();
 
-        service.Reject();
+        var rejectedBy = user.FindFirstValue("unique_name") ?? user.FindFirstValue("sub") ?? "system";
+        service.Reject(rejectedBy, request.Reason);
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(ServiceResponse.FromEntity(service));

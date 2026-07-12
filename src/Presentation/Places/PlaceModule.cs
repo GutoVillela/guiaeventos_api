@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Domain.Entities;
 using Domain.Enums;
 using Domain.ValueObjects;
@@ -213,12 +214,14 @@ public class PlaceModule : BaseModule
     private async Task<IResult> ApproveAsync(
         [FromServices] AppDbContext db,
         [FromRoute] int id,
+        ClaimsPrincipal user,
         CancellationToken ct)
     {
         var place = await db.Places.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
         if (place is null)
             return Results.NotFound();
-        place.Approve();
+        var approvedBy = user.FindFirstValue("unique_name") ?? user.FindFirstValue("sub") ?? "system";
+        place.Approve(approvedBy);
         await db.SaveChangesAsync(ct);
         return Results.Ok(PlaceResponse.FromEntity(place));
     }
@@ -226,12 +229,15 @@ public class PlaceModule : BaseModule
     private async Task<IResult> RejectAsync(
         [FromServices] AppDbContext db,
         [FromRoute] int id,
+        [FromBody] RejectRequest request,
+        ClaimsPrincipal user,
         CancellationToken ct)
     {
         var place = await db.Places.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
         if (place is null)
             return Results.NotFound();
-        place.Reject();
+        var rejectedBy = user.FindFirstValue("unique_name") ?? user.FindFirstValue("sub") ?? "system";
+        place.Reject(rejectedBy, request.Reason);
         await db.SaveChangesAsync(ct);
         return Results.Ok(PlaceResponse.FromEntity(place));
     }

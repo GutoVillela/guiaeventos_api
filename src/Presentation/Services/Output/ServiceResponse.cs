@@ -13,6 +13,11 @@ public record ServiceResponse(
     string CreatedBy,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
+    string? RejectionReason,
+    string? RejectedBy,
+    DateTimeOffset? RejectedAt,
+    string? ApprovedBy,
+    DateTimeOffset? ApprovedAt,
     string? Phone,
     IEnumerable<CategorySummary> Categories
 )
@@ -26,6 +31,11 @@ public record ServiceResponse(
         service.CreatedBy,
         service.CreatedAt,
         service.UpdatedAt,
+        service.RejectionReason,
+        service.RejectedBy,
+        service.RejectedAt,
+        service.ApprovedBy,
+        service.ApprovedAt,
         service.Phone?.ToString(),
         service.Categories.Select(c => new CategorySummary(c.Id, c.Name))
     );
