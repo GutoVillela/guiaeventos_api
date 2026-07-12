@@ -9,6 +9,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Presentation;
 using Repository;
+using Infrastructure;
 using WebAPI.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,7 +21,10 @@ string? connectionString = builder.Configuration.GetConnectionString("MySQL");
 if (string.IsNullOrEmpty(connectionString))
     throw new EmptyConnectionStringException();
 
+var isProduction = builder.Environment.IsProduction();
+
 builder.Services
+    .AddInfrastructure(isProduction: isProduction)
     .AddRepository(connectionString)
     .AddPresentation();
 

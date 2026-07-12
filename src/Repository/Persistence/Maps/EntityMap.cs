@@ -28,6 +28,7 @@ internal class EntityMap<T> : IEntityTypeConfiguration<T> where T : Entity
         builder.Property(x => x.UpdatedAt).IsRequired(false);
         builder.Property(x => x.CreatedBy).IsRequired().HasMaxLength(CreatedByMaxLength);
         builder.Property(x => x.IsDeleted).IsRequired();
+        builder.Ignore(x => x.DomainEvents);
     }
 
     protected virtual void ConfigureKeys(EntityTypeBuilder<T> builder)

@@ -1,3 +1,4 @@
+using Domain.DomainEvents;
 using Domain.Enums;
 using Domain.ValueObjects;
 
@@ -30,6 +31,9 @@ public abstract class Advertisement : Entity
         Description = description;
         Summary = summary;
         Advertiser = advertiser;
+        
+        AdvertisementCreatedDomainEvent adCreatedEvent = new(Guid.NewGuid());
+        RaiseDomainEvent(adCreatedEvent);
     }
 
     protected void UpdateBase(string name, string description, string summary)
@@ -38,6 +42,9 @@ public abstract class Advertisement : Entity
         Description = description;
         Summary = summary;
         UpdatedAt = DateTimeOffset.UtcNow;
+
+        AdvertisementUpdatedDomainEvent adCreatedEvent = new(Guid.NewGuid());
+        RaiseDomainEvent(adCreatedEvent);
     }
 
     public void SetWebsite(string? website)

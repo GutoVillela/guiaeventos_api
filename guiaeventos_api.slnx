@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="src/Domain/Domain.csproj" />
+  <Project Path="src/Infrastructure/Infrastructure.csproj" Id="6b76c38e-538d-4d27-be9a-39b5ef6502e5" />
   <Project Path="src/Presentation/Presentation.csproj" />
   <Project Path="src/Repository/Repository.csproj" />
   <Project Path="src/Shared/Shared.csproj" />
