@@ -32,12 +32,26 @@ public class BannerModule : BaseModule
         [FromServices] AppDbContext db,
         int page = 1,
         int pageSize = 20,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
         CancellationToken ct = default)
     {
-        var total = await db.Banners.CountAsync(ct);
-        var items = await db.Banners
-            .OrderBy(x => x.Order)
-            .ThenBy(x => x.Title)
+        var query = db.Banners.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(x => x.Title.Contains(search));
+
+        var ascending = string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        query = sortBy?.ToLower() switch
+        {
+            "name" => ascending ? query.OrderBy(x => x.Title) : query.OrderByDescending(x => x.Title),
+            "date" => ascending ? query.OrderBy(x => x.CreatedAt) : query.OrderByDescending(x => x.CreatedAt),
+            _      => query.OrderBy(x => x.Order).ThenBy(x => x.Title),
+        };
+
+        var total = await query.CountAsync(ct);
+        var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

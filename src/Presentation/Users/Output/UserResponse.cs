@@ -8,6 +8,7 @@ public record UserResponse(
     string Username,
     string Email,
     bool IsActive,
+    string Role,
     string CreatedBy,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt
@@ -19,6 +20,7 @@ public record UserResponse(
         user.Username,
         user.Email,
         user.IsActive,
+        user.Role.ToString(),
         user.CreatedBy,
         user.CreatedAt,
         user.UpdatedAt

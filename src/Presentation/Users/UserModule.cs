@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Text;
 using Carter;
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -26,6 +27,7 @@ public class UserModule : BaseModule
 
         group.MapPost("/login", LoginAsync);
         group.MapPost("/", CreateAsync);
+        group.MapPost("/admin", CreateAdminAsync).RequireAuthorization("AdminOnly");
         group.MapPost("/first", CreateFirstUserAsync);
         group.MapGet("/", ListAsync).RequireAuthorization();
         group.MapGet("/{id:int}", GetByIdAsync).RequireAuthorization();
@@ -80,6 +82,31 @@ public class UserModule : BaseModule
         return Results.Created($"{BasePath}/{user.Id}", UserResponse.FromEntity(user));
     }
 
+    private async Task<IResult> CreateAdminAsync(
+        [FromServices] AppDbContext db,
+        [FromBody] CreateUserRequest request,
+        CancellationToken ct)
+    {
+        var usernameExists = await db.Users.AnyAsync(u => u.Username == request.Username, ct);
+        if (usernameExists)
+            return Results.Conflict("Username already taken.");
+
+        var emailExists = await db.Users.AnyAsync(u => u.Email == request.Email, ct);
+        if (emailExists)
+            return Results.Conflict("Email already registered.");
+
+        var user = new User(request.Name, request.Username, request.Email, request.Password)
+        {
+            CreatedBy = "system"
+        };
+        user.SetRole(EUserRole.Admin);
+
+        db.Users.Add(user);
+        await db.SaveChangesAsync(ct);
+
+        return Results.Created($"{BasePath}/{user.Id}", UserResponse.FromEntity(user));
+    }
+
     private async Task<IResult> CreateFirstUserAsync(
         [FromServices] AppDbContext db,
         CancellationToken ct)
@@ -96,6 +123,7 @@ public class UserModule : BaseModule
         {
             CreatedBy = "system"
         };
+        user.SetRole(EUserRole.Admin);
         db.Users.Add(user);
         await db.SaveChangesAsync(ct);
         return Results.Created($"{BasePath}/{user.Id}", UserResponse.FromEntity(user));
@@ -105,11 +133,25 @@ public class UserModule : BaseModule
         [FromServices] AppDbContext db,
         int page = 1,
         int pageSize = 20,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
         CancellationToken ct = default)
     {
-        var total = await db.Users.CountAsync(ct);
-        var items = await db.Users
-            .OrderBy(u => u.Name)
+        var query = db.Users.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(u => u.Name.Contains(search) || u.Email.Contains(search));
+
+        var ascending = string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        query = sortBy?.ToLower() switch
+        {
+            "date" => ascending ? query.OrderBy(u => u.CreatedAt) : query.OrderByDescending(u => u.CreatedAt),
+            _      => ascending ? query.OrderBy(u => u.Name) : query.OrderByDescending(u => u.Name),
+        };
+
+        var total = await query.CountAsync(ct);
+        var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
@@ -214,6 +256,7 @@ public class UserModule : BaseModule
             new Claim("sub", user.Id.ToString()),
             new Claim("unique_name", user.Username),
             new Claim("email", user.Email),
+            new Claim("role", user.Role.ToString()),
             new Claim("jti", Guid.NewGuid().ToString())
         };
 

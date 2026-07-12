@@ -1,3 +1,4 @@
+using Domain.Enums;
 using Domain.ValueObjects;
 
 namespace Domain.Entities;
@@ -8,6 +9,7 @@ public class User : Entity
     public string Username { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
     public bool IsActive { get; private set; } = true;
+    public EUserRole Role { get; private set; } = EUserRole.Advertiser;
     public Password Password { get; private set; } = new Password();
     public Phone? Phone { get; private set; }
 
@@ -28,6 +30,12 @@ public class User : Entity
     {
         Name = name;
         Email = email;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetRole(EUserRole role)
+    {
+        Role = role;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

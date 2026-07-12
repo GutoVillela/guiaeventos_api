@@ -22,8 +22,8 @@ public class PostModule : BaseModule
         group.MapGet("/{id:int}", GetByIdAsync);
         group.MapPost("/", CreateAsync).RequireAuthorization();
         group.MapPut("/{id:int}", UpdateAsync).RequireAuthorization();
-        group.MapPost("/{id:int}/publish", PublishAsync).RequireAuthorization();
-        group.MapDelete("/{id:int}/publish", UnpublishAsync).RequireAuthorization();
+        group.MapPost("/{id:int}/publish", PublishAsync).RequireAuthorization("AdminOnly");
+        group.MapDelete("/{id:int}/publish", UnpublishAsync).RequireAuthorization("AdminOnly");
         group.MapDelete("/{id:int}", DeleteAsync).RequireAuthorization();
     }
 
@@ -32,16 +32,36 @@ public class PostModule : BaseModule
         int page = 1,
         int pageSize = 20,
         bool publishedOnly = false,
+        int? authorId = null,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
         CancellationToken ct = default)
     {
-        var query = db.Posts.Include(x => x.Author).AsQueryable();
+        var query = db.Posts
+            .Where(x => !x.IsDeleted)
+            .Include(x => x.Author)
+            .AsQueryable();
 
         if (publishedOnly)
             query = query.Where(x => x.PublishedAt != null);
 
+        if (authorId.HasValue)
+            query = query.Where(x => x.AuthorId == authorId.Value);
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(x => x.Title.Contains(search));
+
+        var ascending = string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase);
+        query = sortBy?.ToLower() switch
+        {
+            "title" => ascending ? query.OrderBy(x => x.Title) : query.OrderByDescending(x => x.Title),
+            "date"  => ascending ? query.OrderBy(x => x.PublishedAt ?? x.CreatedAt) : query.OrderByDescending(x => x.PublishedAt ?? x.CreatedAt),
+            _       => query.OrderByDescending(x => x.PublishedAt ?? x.CreatedAt),
+        };
+
         var total = await query.CountAsync(ct);
         var items = await query
-            .OrderByDescending(x => x.PublishedAt ?? x.CreatedAt)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

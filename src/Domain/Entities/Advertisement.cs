@@ -73,4 +73,16 @@ public abstract class Advertisement : Entity
             Categories.Add(category);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
+
+    public void Approve()
+    {
+        Status = EAdvertisementStatus.Approved;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void Reject()
+    {
+        Status = EAdvertisementStatus.Rejected;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }

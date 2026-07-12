@@ -1,4 +1,5 @@
 using Domain.Entities;
+using Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -16,6 +17,13 @@ internal class UserMap : EntityMap<User>
         builder.Property(x => x.Username).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Email).HasMaxLength(200).IsRequired();
         builder.Property(x => x.IsActive).IsRequired().HasDefaultValue(true);
+
+        builder.Property(x => x.Role)
+            .IsRequired()
+            .HasConversion<string>(
+                v => v.ToString(),
+                v => (EUserRole)Enum.Parse(typeof(EUserRole), v))
+            .HasMaxLength(50);
 
         builder.HasIndex(x => x.Username).IsUnique();
         builder.HasIndex(x => x.Email).IsUnique();
