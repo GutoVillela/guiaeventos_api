@@ -12,5 +12,8 @@ public record UpdatePlaceRequest(
     string? ZipCode,
     string? Number,
     string? Complement,
-    string? ReferencePoint
+    string? ReferencePoint,
+    int[] CategoryIds,
+    string? PhoneAreaCode,
+    string? PhoneNumber
 );

@@ -124,11 +124,26 @@ public class ServiceModule : BaseModule
         [FromBody] UpdateServiceRequest request,
         CancellationToken ct)
     {
-        var service = await db.Services.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var service = await db.Services
+            .Include(x => x.Categories)
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
         if (service is null)
             return Results.NotFound();
 
         service.Update(request.Name, request.Description, request.Summary ?? string.Empty);
+
+        if (request.CategoryIds is { Length: > 0 })
+        {
+            var categories = await db.Categories
+                .Where(c => request.CategoryIds.Contains(c.Id))
+                .ToListAsync(ct);
+            service.SetCategories(categories);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.PhoneAreaCode) && !string.IsNullOrWhiteSpace(request.PhoneNumber))
+            service.SetPhone(Phone.Create(request.PhoneAreaCode, request.PhoneNumber));
+
+        service.ResetToPendingApproval();
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(ServiceResponse.FromEntity(service));

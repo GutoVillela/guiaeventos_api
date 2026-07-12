@@ -174,7 +174,9 @@ public class PlaceModule : BaseModule
         [FromBody] UpdatePlaceRequest request,
         CancellationToken ct)
     {
-        var place = await db.Places.FirstOrDefaultAsync(x => x.Id == id, ct);
+        var place = await db.Places
+            .Include(x => x.Categories)
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
         if (place is null)
             return Results.NotFound();
 
@@ -190,6 +192,19 @@ public class PlaceModule : BaseModule
             request.ReferencePoint ?? string.Empty);
 
         place.Update(request.Name, request.Description, request.Summary ?? string.Empty, location);
+
+        if (request.CategoryIds is { Length: > 0 })
+        {
+            var categories = await db.Categories
+                .Where(c => request.CategoryIds.Contains(c.Id))
+                .ToListAsync(ct);
+            place.SetCategories(categories);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.PhoneAreaCode) && !string.IsNullOrWhiteSpace(request.PhoneNumber))
+            place.SetPhone(Phone.Create(request.PhoneAreaCode, request.PhoneNumber));
+
+        place.ResetToPendingApproval();
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(PlaceResponse.FromEntity(place));

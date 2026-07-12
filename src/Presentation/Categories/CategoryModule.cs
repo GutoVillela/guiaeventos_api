@@ -19,20 +19,36 @@ public class CategoryModule : BaseModule
         var group = app.MapGroup(BasePath).WithTags("Categories");
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync);
-        group.MapPut("/{id:int}", UpdateAsync);
-        group.MapDelete("/{id:int}", DeleteAsync);
+        group.MapPost("/", CreateAsync).RequireAuthorization("AdminOnly");
+        group.MapPut("/{id:int}", UpdateAsync).RequireAuthorization("AdminOnly");
+        group.MapDelete("/{id:int}", DeleteAsync).RequireAuthorization("AdminOnly");
     }
 
     private async Task<IResult> ListAsync(
         [FromServices] AppDbContext db,
         int page = 1,
         int pageSize = 20,
+        string? search = null,
+        string? sortBy = null,
+        string? sortOrder = null,
         CancellationToken ct = default)
     {
-        var total = await db.Categories.CountAsync(ct);
-        var items = await db.Categories
-            .OrderBy(x => x.Name)
+        var query = db.Categories
+            .Where(x => !x.IsDeleted)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(x => x.Name.Contains(search));
+
+        var ascending = !string.Equals(sortOrder, "desc", StringComparison.OrdinalIgnoreCase);
+        query = sortBy?.ToLower() switch
+        {
+            "date" => ascending ? query.OrderBy(x => x.CreatedAt) : query.OrderByDescending(x => x.CreatedAt),
+            _      => ascending ? query.OrderBy(x => x.Name) : query.OrderByDescending(x => x.Name),
+        };
+
+        var total = await query.CountAsync(ct);
+        var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);

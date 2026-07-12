@@ -88,6 +88,12 @@ public abstract class Advertisement : Entity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
+    public void ResetToPendingApproval()
+    {
+        Status = EAdvertisementStatus.PendingApproval;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
     public void Reject(string rejectedBy, string? reason = null)
     {
         Status = EAdvertisementStatus.Rejected;
