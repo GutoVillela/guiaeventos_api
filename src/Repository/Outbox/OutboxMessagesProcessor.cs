@@ -1,4 +1,5 @@
-﻿using Domain.Primitives;
+﻿using Domain.DomainEvents;
+using Domain.Primitives;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -12,11 +13,17 @@ public sealed class OutboxMessagesProcessor : IOutboxProcessor
 
     private readonly AppDbContext _dataContext;
     private readonly ILogger<OutboxMessagesProcessor> _logger;
+    private readonly IDomainEventHandler<AdvertisementCreatedDomainEvent> _domainEventHandler;
 
-    public OutboxMessagesProcessor(AppDbContext dataContext, ILogger<OutboxMessagesProcessor> logger)
+    public OutboxMessagesProcessor(
+        AppDbContext dataContext, 
+        ILogger<OutboxMessagesProcessor> logger,
+        IDomainEventHandler<AdvertisementCreatedDomainEvent> domainEventHandler
+        )
     {
         _dataContext = dataContext;
         _logger = logger;
+        _domainEventHandler = domainEventHandler;
     }
 
     public async Task ProcessOutboxMessagesAsync(CancellationToken cancellationToken = default, int batchSize = 1000, TimeSpan? delay = null)
@@ -51,7 +58,7 @@ public sealed class OutboxMessagesProcessor : IOutboxProcessor
 
             try
             {
-                // TODO Process domain event
+                await ProcessDomainEvent(domainEvent, cancellationToken);
                 message.MaskAsProcessed();
                 _logger.LogInformation("Processed outbox message with ID: {MessageId}", message.Id);
             }
@@ -68,5 +75,12 @@ public sealed class OutboxMessagesProcessor : IOutboxProcessor
         _dataContext.OutboxMessages.UpdateRange(messages);
         await _dataContext.SaveChangesAsync(cancellationToken);
         _logger.LogInformation("Processed {Count} outbox messages", messages.Count);
+    }
+
+    private async Task ProcessDomainEvent(IDomainEvent domainEvent, CancellationToken cancellationToken = default)
+    {
+        // TODO Melhorar isso aqui depois, porque fazer isso um por um pra cada evento é sacanagem.....
+        if (domainEvent.GetType().Name == nameof(AdvertisementCreatedDomainEvent))
+            await _domainEventHandler.HandleAsync(domainEvent as AdvertisementCreatedDomainEvent, cancellationToken);
     }
 }

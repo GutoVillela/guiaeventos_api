@@ -10,6 +10,7 @@ using Microsoft.IdentityModel.Tokens;
 using Presentation;
 using Repository;
 using Infrastructure;
+using Application;
 using WebAPI.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,7 +27,8 @@ var isProduction = builder.Environment.IsProduction();
 builder.Services
     .AddInfrastructure(isProduction: isProduction)
     .AddRepository(connectionString)
-    .AddPresentation();
+    .AddPresentation()
+    .AddApplication();
 
 builder.Services
     .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

@@ -18,6 +18,7 @@ public class AppDbContext : DbContext
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Banner> Banners => Set<Banner>();
     public DbSet<Post> Posts => Set<Post>();
+    public DbSet<Notification> Notifications => Set<Notification>();
     internal DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
