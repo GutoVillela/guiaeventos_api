@@ -1,4 +1,4 @@
-﻿using Domain.Entities;
+﻿using Domain.Primitives;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -24,6 +24,7 @@ internal class EntityMap<T> : IEntityTypeConfiguration<T> where T : Entity
     private void ConfigureEntityProperties(EntityTypeBuilder<T> builder)
     {
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.ClientGeneratedId).IsRequired().HasDefaultValue(Guid.NewGuid());
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.Property(x => x.UpdatedAt).IsRequired(false);
         builder.Property(x => x.CreatedBy).IsRequired().HasMaxLength(CreatedByMaxLength);

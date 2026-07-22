@@ -1,3 +1,5 @@
+using Domain.Primitives;
+
 namespace Domain.Entities;
 
 public class Category : Entity

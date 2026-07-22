@@ -1,9 +1,9 @@
-﻿using Domain.Entities;
-using Microsoft.EntityFrameworkCore.Diagnostics;
+﻿using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.Json;
 using Newtonsoft.Json;
 using System.Web;
 using Repository.Outbox;
+using Domain.Primitives;
 
 namespace Repository.Interceptors;
 

@@ -20,6 +20,7 @@ public class AdvertisementCreatedDomainEventHandler : IDomainEventHandler<Advert
 
     public async Task HandleAsync(AdvertisementCreatedDomainEvent domainEvent, CancellationToken cancellationToken = default)
     {
+        
         Notification notification = new("Um novo anúncio foi criado", "Um novo anúncio foi criado e precisa de aprovação. Clique aqui para visualizar");
         await _dbContext.Notifications.AddAsync(notification, cancellationToken);
         await _dbContext.SaveChangesAsync(cancellationToken);

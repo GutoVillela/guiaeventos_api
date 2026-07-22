@@ -7,7 +7,7 @@ namespace Domain.DomainEvents;
 
 public record DomainEventBase : IDomainEvent
 {
-    public Guid EventId { get; init; }
+    public string? ReferenceId { get; init; }
 
     public string ToJson()
     {
@@ -32,9 +32,9 @@ public record DomainEventBase : IDomainEvent
 
     protected DomainEventBase() { }
 
-    public DomainEventBase(Guid eventId)
+    public DomainEventBase(string? referenceId)
     {
-        this.EventId = eventId;
+        this.ReferenceId = referenceId;
     }
 }
 

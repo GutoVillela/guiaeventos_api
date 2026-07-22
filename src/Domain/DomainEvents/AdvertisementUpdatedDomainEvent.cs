@@ -2,5 +2,5 @@
 
 public record AdvertisementUpdatedDomainEvent : DomainEventBase
 {
-    public AdvertisementUpdatedDomainEvent(Guid eventId) : base(eventId) { }
+    public AdvertisementUpdatedDomainEvent(Guid advertisementClientId) : base(advertisementClientId.ToString()) { }
 }
