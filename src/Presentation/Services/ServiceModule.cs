@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Presentation.FileStorage;
 using Presentation.Services.Input;
 using Presentation.Services.Output;
 using Repository.Persistence;
@@ -22,7 +23,7 @@ public class ServiceModule : BaseModule
         var group = app.MapGroup(BasePath).WithTags("Services");
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync).RequireAuthorization();
+        group.MapPost("/", CreateAsync).RequireAuthorization().DisableAntiforgery();
         group.MapPut("/{id:int}", UpdateAsync);
         group.MapDelete("/{id:int}", DeleteAsync);
         group.MapPut("/{id:int}/approve", ApproveAsync).RequireAuthorization("AdminOnly");
@@ -42,6 +43,7 @@ public class ServiceModule : BaseModule
         var query = db.Services
             .Where(x => !x.IsDeleted)
             .Include(x => x.Categories)
+            .Include(x => x.Images)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -75,6 +77,7 @@ public class ServiceModule : BaseModule
         var service = await db.Services
             .Where(x => !x.IsDeleted)
             .Include(x => x.Categories)
+            .Include(x => x.Images)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (service is null)
             return Results.NotFound();
@@ -84,17 +87,31 @@ public class ServiceModule : BaseModule
 
     private async Task<IResult> CreateAsync(
         [FromServices] AppDbContext db,
-        [FromBody] CreateServiceRequest request,
+        [FromServices] IFileStorageService fileStorage,
+        [FromForm] int advertiserId,
+        [FromForm] string name,
+        [FromForm] string description,
+        [FromForm] string? summary,
+        [FromForm] int[] categoryIds,
+        [FromForm] string phoneAreaCode,
+        [FromForm] string phoneNumber,
+        [FromForm] int mainImageIndex,
+        IFormFileCollection images,
         CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(request.PhoneAreaCode) || string.IsNullOrWhiteSpace(request.PhoneNumber))
+        if (string.IsNullOrWhiteSpace(phoneAreaCode) || string.IsNullOrWhiteSpace(phoneNumber))
             return Results.BadRequest("O telefone (WhatsApp) é obrigatório.");
 
-        var categoryIds = request.CategoryIds?.ToList() ?? [];
-        if (categoryIds.Count == 0)
+        if (images == null || images.Count == 0)
+            return Results.BadRequest("Pelo menos uma imagem deve ser enviada.");
+
+        if (mainImageIndex < 0 || mainImageIndex >= images.Count)
+            return Results.BadRequest("Índice da imagem principal inválido.");
+
+        if (categoryIds == null || categoryIds.Length == 0)
             return Results.BadRequest("Pelo menos uma categoria deve ser informada.");
 
-        var advertiser = await db.Users.FindAsync([request.AdvertiserId], ct);
+        var advertiser = await db.Users.FindAsync([advertiserId], ct);
         if (advertiser is null)
             return Results.BadRequest("Advertiser not found.");
 
@@ -102,15 +119,28 @@ public class ServiceModule : BaseModule
             .Where(c => categoryIds.Contains(c.Id))
             .ToListAsync(ct);
 
-        if (categories.Count != categoryIds.Count)
+        if (categories.Count != categoryIds.Length)
             return Results.BadRequest("Uma ou mais categorias informadas não foram encontradas.");
 
-        var service = new Service(request.Name, request.Description, request.Summary ?? string.Empty, advertiser)
+        var service = new Service(name, description, summary ?? string.Empty, advertiser)
         {
             CreatedBy = "system"
         };
         service.SetCategories(categories);
-        service.SetPhone(Phone.Create(request.PhoneAreaCode, request.PhoneNumber));
+        service.SetPhone(Phone.Create(phoneAreaCode, phoneNumber));
+
+        var orderedFiles = images.ToList();
+        var mainFile = orderedFiles[mainImageIndex];
+        orderedFiles.RemoveAt(mainImageIndex);
+        orderedFiles.Insert(0, mainFile);
+
+        var imageList = new List<Image>();
+        foreach (var file in orderedFiles)
+        {
+            var url = await fileStorage.UploadAsync(file, ct);
+            imageList.Add(Image.Create(url, null));
+        }
+        service.SetImages(imageList);
 
         db.Services.Add(service);
         await db.SaveChangesAsync(ct);

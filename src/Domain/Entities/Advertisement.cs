@@ -23,6 +23,7 @@ public abstract class Advertisement : Entity
     public DateTimeOffset? RejectedAt { get; private set; }
     public string? ApprovedBy { get; private set; }
     public DateTimeOffset? ApprovedAt { get; private set; }
+    public string? Metadata { get; private set; }
 
     protected Advertisement() { }
 

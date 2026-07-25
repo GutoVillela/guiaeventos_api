@@ -7,8 +7,10 @@ public record NotificationResponse(
     string Title,
     string Message,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? AckedAt)
+    DateTimeOffset? AckedAt,
+    int? ReferenceId,
+    string? ReferenceType)
 {
     public static NotificationResponse FromEntity(Notification n) =>
-        new(n.Id, n.Title, n.Message, n.CreatedAt, n.AckedAt);
+        new(n.Id, n.Title, n.Message, n.CreatedAt, n.AckedAt, n.ReferenceId, n.ReferenceType?.ToString());
 }

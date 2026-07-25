@@ -3,6 +3,7 @@ using Domain.Entities;
 namespace Presentation.Services.Output;
 
 public record CategorySummary(int Id, string Name);
+public record ImageResponse(string Url, string? AltText);
 
 public record ServiceResponse(
     int Id,
@@ -19,7 +20,8 @@ public record ServiceResponse(
     string? ApprovedBy,
     DateTimeOffset? ApprovedAt,
     string? Phone,
-    IEnumerable<CategorySummary> Categories
+    IEnumerable<CategorySummary> Categories,
+    IEnumerable<ImageResponse> Images
 )
 {
     public static ServiceResponse FromEntity(Service service) => new(
@@ -37,6 +39,7 @@ public record ServiceResponse(
         service.ApprovedBy,
         service.ApprovedAt,
         service.Phone?.ToString(),
-        service.Categories.Select(c => new CategorySummary(c.Id, c.Name))
+        service.Categories.Select(c => new CategorySummary(c.Id, c.Name)),
+        service.Images.Select(i => new ImageResponse(i.Url, i.AltText))
     );
 }

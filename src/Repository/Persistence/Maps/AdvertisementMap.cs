@@ -29,6 +29,8 @@ internal class AdvertisementMap : EntityMap<Advertisement>
             .HasMaxLength(50)
             .HasDefaultValue(EAdvertisementStatus.PendingApproval);
 
+        builder.Property(x => x.Metadata);
+
         builder.HasIndex(x => x.Name);
 
         builder.OwnsOne(x => x.Phone, phone =>
