@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Diagnostics;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage.Json;
 using Newtonsoft.Json;
 using System.Web;
@@ -19,6 +20,7 @@ internal class ConvertDomainEventsToOutboxMessagesInterceptor : SaveChangesInter
             return base.SavingChangesAsync(eventData, result, cancellationToken);
 
         var outboxMessages = dbContext.ChangeTracker.Entries<Entity>()
+            .Where(e => e.State != EntityState.Added) // Added entities have Id = 0; AppDbContext fixes ReferenceId after INSERT
             .SelectMany(e =>
             {
                 var entity = e.Entity;

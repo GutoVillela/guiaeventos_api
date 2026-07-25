@@ -1,5 +1,6 @@
 using System.Reflection;
 using Domain.Entities;
+using Domain.Primitives;
 using Microsoft.EntityFrameworkCore;
 using Repository.Outbox;
 
@@ -9,6 +10,60 @@ public class AppDbContext : DbContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        // Entities being Added have Id = 0 — their domain events' ReferenceId must be fixed after INSERT.
+        // Collect them now (before state changes) so we can update them after the first save.
+        var addedWithEvents = ChangeTracker
+            .Entries<Entity>()
+            .Where(e => e.State == EntityState.Added && e.Entity.DomainEvents.Any())
+            .Select(e => e.Entity)
+            .ToList();
+
+        // For existing entities (Modified/Deleted), Id is already set — update ReferenceId before the
+        // interceptor serialises their events during the first save.
+        foreach (var entry in ChangeTracker.Entries<Entity>().Where(e => e.State != EntityState.Added))
+            entry.Entity.UpdateDomainEventsReferenceId();
+
+        bool ownsTransaction = Database.CurrentTransaction is null;
+        var transaction = ownsTransaction
+            ? await Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
+        try
+        {
+            // First save: EF Core executes INSERTs/UPDATEs.
+            // Interceptor handles non-Added entities; Added entities are intentionally skipped.
+            var result = await base.SaveChangesAsync(cancellationToken);
+
+            if (addedWithEvents.Count > 0)
+            {
+                // Auto-increment Ids are now assigned — fix ReferenceId on their domain events.
+                foreach (var entity in addedWithEvents)
+                    entity.UpdateDomainEventsReferenceId();
+
+                // Second save: interceptor processes the newly-inserted entities' events.
+                await base.SaveChangesAsync(cancellationToken);
+            }
+
+            if (ownsTransaction && transaction is not null)
+                await transaction.CommitAsync(cancellationToken);
+
+            return result;
+        }
+        catch
+        {
+            if (ownsTransaction && transaction is not null)
+                await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null)
+                await transaction.DisposeAsync();
+        }
     }
 
     public DbSet<Place> Places => Set<Place>();

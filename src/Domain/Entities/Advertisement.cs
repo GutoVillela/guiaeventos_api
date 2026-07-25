@@ -32,9 +32,7 @@ public abstract class Advertisement : Entity
         Description = description;
         Summary = summary;
         Advertiser = advertiser;
-        
-        AdvertisementCreatedDomainEvent adCreatedEvent = new(advertisementClientId: ClientGeneratedId);
-        RaiseDomainEvent(adCreatedEvent);
+        RaiseDomainEvent(new AdvertisementCreatedDomainEvent());
     }
 
     protected void UpdateBase(string name, string description, string summary)
@@ -43,9 +41,7 @@ public abstract class Advertisement : Entity
         Description = description;
         Summary = summary;
         UpdatedAt = DateTimeOffset.UtcNow;
-
-        AdvertisementUpdatedDomainEvent adUpdatedEvent = new(advertisementClientId: ClientGeneratedId);
-        RaiseDomainEvent(adUpdatedEvent);
+        RaiseDomainEvent(new AdvertisementUpdatedDomainEvent());
     }
 
     public void SetWebsite(string? website)

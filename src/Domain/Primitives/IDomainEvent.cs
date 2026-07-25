@@ -2,6 +2,6 @@
 
 public interface IDomainEvent
 {
-    string? ReferenceId { get; init; }
+    string? ReferenceId { get; set; }
     string ToJson();
 }
