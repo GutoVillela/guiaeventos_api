@@ -12,12 +12,14 @@ public abstract class Advertisement : Entity
     public string Summary { get; private set; } = string.Empty;
     public EAdvertisementStatus Status { get; private set; } = EAdvertisementStatus.PendingApproval;
     public string? Website { get; private set; }
+    public string? VideoUrl { get; private set; }
     public Phone? Phone { get; private set; }
 
     public User Advertiser { get; private set; } = new User();
     public IList<Category> Categories { get; private set; } = new List<Category>();
     public IList<Image> Images { get; private set; } = new List<Image>();
 
+    public bool IsHighlighted { get; private set; }
     public string? RejectionReason { get; private set; }
     public string? RejectedBy { get; private set; }
     public DateTimeOffset? RejectedAt { get; private set; }
@@ -48,6 +50,18 @@ public abstract class Advertisement : Entity
     public void SetWebsite(string? website)
     {
         Website = website;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetVideoUrl(string? videoUrl)
+    {
+        VideoUrl = videoUrl;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetHighlighted(bool value)
+    {
+        IsHighlighted = value;
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 

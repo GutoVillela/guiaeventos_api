@@ -53,4 +53,11 @@ public class Post : Entity
     }
 
     public bool IsPublished => PublishedAt.HasValue;
+    public bool IsHighlighted { get; private set; }
+
+    public void SetHighlighted(bool value)
+    {
+        IsHighlighted = value;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
 }

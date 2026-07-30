@@ -21,6 +21,7 @@ internal class AdvertisementMap : EntityMap<Advertisement>
         builder.Property(x => x.Description).IsRequired();
         builder.Property(x => x.Summary).HasMaxLength(1000).IsRequired(false);
         builder.Property(x => x.Website).HasMaxLength(300).IsRequired(false);
+        builder.Property(x => x.VideoUrl).HasMaxLength(500).IsRequired(false);
         builder.Property(x => x.Status)
             .IsRequired()
             .HasConversion<string>(
@@ -29,9 +30,11 @@ internal class AdvertisementMap : EntityMap<Advertisement>
             .HasMaxLength(50)
             .HasDefaultValue(EAdvertisementStatus.PendingApproval);
 
+        builder.Property(x => x.IsHighlighted).HasDefaultValue(false);
         builder.Property(x => x.Metadata);
 
         builder.HasIndex(x => x.Name);
+        builder.HasIndex(x => x.IsHighlighted);
 
         builder.OwnsOne(x => x.Phone, phone =>
         {

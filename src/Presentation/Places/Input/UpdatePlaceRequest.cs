@@ -15,5 +15,6 @@ public record UpdatePlaceRequest(
     string? ReferencePoint,
     int[] CategoryIds,
     string? PhoneAreaCode,
-    string? PhoneNumber
+    string? PhoneNumber,
+    string? VideoUrl
 );

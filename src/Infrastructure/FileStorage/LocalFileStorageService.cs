@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Presentation.FileStorage;
 
-namespace Presentation.FileStorage;
+namespace Infrastructure.FileStorage;
 
 public class LocalFileStorageService : IFileStorageService
 {

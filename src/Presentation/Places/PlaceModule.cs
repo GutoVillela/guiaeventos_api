@@ -28,6 +28,8 @@ public class PlaceModule : BaseModule
         group.MapDelete("/{id:int}", DeleteAsync);
         group.MapPut("/{id:int}/approve", ApproveAsync).RequireAuthorization("AdminOnly");
         group.MapPut("/{id:int}/reject", RejectAsync).RequireAuthorization("AdminOnly");
+        group.MapPut("/{id:int}/highlight", HighlightAsync).RequireAuthorization("AdminOnly");
+        group.MapDelete("/{id:int}/highlight", UnhighlightAsync).RequireAuthorization("AdminOnly");
     }
 
     private async Task<IResult> ListAsync(
@@ -36,6 +38,7 @@ public class PlaceModule : BaseModule
         int pageSize = 20,
         string? search = null,
         string? status = null,
+        bool? isHighlighted = null,
         string? sortBy = null,
         string? sortOrder = null,
         CancellationToken ct = default)
@@ -51,6 +54,9 @@ public class PlaceModule : BaseModule
 
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<EAdvertisementStatus>(status, true, out var parsedStatus))
             query = query.Where(x => x.Status == parsedStatus);
+
+        if (isHighlighted.HasValue)
+            query = query.Where(x => x.IsHighlighted == isHighlighted.Value);
 
         var ascending = string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase);
         query = sortBy?.ToLower() switch
@@ -103,6 +109,7 @@ public class PlaceModule : BaseModule
         [FromForm] string? referencePoint,
         [FromForm] string phoneAreaCode,
         [FromForm] string phoneNumber,
+        [FromForm] string? videoUrl,
         [FromForm] int mainImageIndex,
         IFormFileCollection images,
         CancellationToken ct)
@@ -147,6 +154,7 @@ public class PlaceModule : BaseModule
         };
         place.SetCategories(categories);
         place.SetPhone(Phone.Create(phoneAreaCode, phoneNumber));
+        place.SetVideoUrl(videoUrl);
 
         // Upload images, placing main image first
         var orderedFiles = images.ToList();
@@ -204,6 +212,7 @@ public class PlaceModule : BaseModule
         if (!string.IsNullOrWhiteSpace(request.PhoneAreaCode) && !string.IsNullOrWhiteSpace(request.PhoneNumber))
             place.SetPhone(Phone.Create(request.PhoneAreaCode, request.PhoneNumber));
 
+        place.SetVideoUrl(request.VideoUrl);
         place.ResetToPendingApproval();
         await db.SaveChangesAsync(ct);
 
@@ -255,5 +264,31 @@ public class PlaceModule : BaseModule
         place.Reject(rejectedBy, request.Reason);
         await db.SaveChangesAsync(ct);
         return Results.Ok(PlaceResponse.FromEntity(place));
+    }
+
+    private async Task<IResult> HighlightAsync(
+        [FromServices] AppDbContext db,
+        [FromRoute] int id,
+        CancellationToken ct)
+    {
+        var place = await db.Places.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
+        if (place is null)
+            return Results.NotFound();
+        place.SetHighlighted(true);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { place.Id, place.IsHighlighted });
+    }
+
+    private async Task<IResult> UnhighlightAsync(
+        [FromServices] AppDbContext db,
+        [FromRoute] int id,
+        CancellationToken ct)
+    {
+        var place = await db.Places.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
+        if (place is null)
+            return Results.NotFound();
+        place.SetHighlighted(false);
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
     }
 }

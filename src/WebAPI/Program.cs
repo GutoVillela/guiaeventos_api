@@ -1,16 +1,17 @@
-using System.Text;
+using Application;
 using Carter;
 using Domain.Entities;
 using Domain.Enums;
+using Infrastructure;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Presentation;
 using Repository;
-using Infrastructure;
-using Application;
+using System.Text;
+using WebAPI.Configuration;
 using WebAPI.Exceptions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,9 @@ if (string.IsNullOrEmpty(connectionString))
     throw new EmptyConnectionStringException();
 
 var isProduction = builder.Environment.IsProduction();
+
+// Setup Google Cloud Options and Email Settings
+Setup.SetupGoogleCloudOptions(builder);
 
 builder.Services
     .AddInfrastructure(isProduction: isProduction)

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Repository.Persistence;
 
@@ -10,9 +11,11 @@ using Repository.Persistence;
 namespace Repository.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260725135853_AddLeadTable")]
+    partial class AddLeadTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -64,11 +67,6 @@ namespace Repository.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsHighlighted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(false);
-
                     b.Property<string>("Metadata")
                         .HasColumnType("longtext");
 
@@ -105,10 +103,6 @@ namespace Repository.Migrations
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("datetime");
 
-                    b.Property<string>("VideoUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("varchar(500)");
-
                     b.Property<string>("Website")
                         .HasMaxLength(300)
                         .HasColumnType("varchar(300)");
@@ -116,8 +110,6 @@ namespace Repository.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AdvertiserId");
-
-                    b.HasIndex("IsHighlighted");
 
                     b.HasIndex("Name");
 
@@ -398,11 +390,6 @@ namespace Repository.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<bool>("IsHighlighted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(false);
-
                     b.Property<DateTimeOffset?>("PublishedAt")
                         .HasColumnType("datetime");
 
@@ -427,8 +414,6 @@ namespace Repository.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
-
-                    b.HasIndex("IsHighlighted");
 
                     b.HasIndex("PublishedAt");
 

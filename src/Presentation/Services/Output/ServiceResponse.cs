@@ -11,6 +11,7 @@ public record ServiceResponse(
     string Description,
     string Summary,
     string Status,
+    bool IsHighlighted,
     string CreatedBy,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
@@ -20,6 +21,7 @@ public record ServiceResponse(
     string? ApprovedBy,
     DateTimeOffset? ApprovedAt,
     string? Phone,
+    string? VideoUrl,
     IEnumerable<CategorySummary> Categories,
     IEnumerable<ImageResponse> Images
 )
@@ -30,6 +32,7 @@ public record ServiceResponse(
         service.Description,
         service.Summary,
         service.Status.ToString(),
+        service.IsHighlighted,
         service.CreatedBy,
         service.CreatedAt,
         service.UpdatedAt,
@@ -39,6 +42,7 @@ public record ServiceResponse(
         service.ApprovedBy,
         service.ApprovedAt,
         service.Phone?.ToString(),
+        service.VideoUrl,
         service.Categories.Select(c => new CategorySummary(c.Id, c.Name)),
         service.Images.Select(i => new ImageResponse(i.Url, i.AltText))
     );

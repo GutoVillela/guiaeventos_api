@@ -19,8 +19,11 @@ internal class PostMap : EntityMap<Post>
         builder.Property(x => x.PublishedAt).IsRequired(false);
         builder.Property(x => x.AuthorId).IsRequired();
 
+        builder.Property(x => x.IsHighlighted).HasDefaultValue(false);
+
         builder.HasIndex(x => x.Slug).IsUnique();
         builder.HasIndex(x => x.PublishedAt);
+        builder.HasIndex(x => x.IsHighlighted);
 
         builder.OwnsOne(x => x.CoverImage, image =>
         {

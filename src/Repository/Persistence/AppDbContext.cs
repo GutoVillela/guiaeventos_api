@@ -74,6 +74,7 @@ public class AppDbContext : DbContext
     public DbSet<Banner> Banners => Set<Banner>();
     public DbSet<Post> Posts => Set<Post>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Lead> Leads => Set<Lead>();
     internal DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -89,5 +90,6 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Category>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Banner>().HasQueryFilter(x => !x.IsDeleted);
         modelBuilder.Entity<Post>().HasQueryFilter(x => !x.IsDeleted);
+        modelBuilder.Entity<Lead>().HasQueryFilter(x => !x.IsDeleted);
     }
 }

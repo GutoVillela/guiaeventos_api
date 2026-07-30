@@ -28,6 +28,8 @@ public class ServiceModule : BaseModule
         group.MapDelete("/{id:int}", DeleteAsync);
         group.MapPut("/{id:int}/approve", ApproveAsync).RequireAuthorization("AdminOnly");
         group.MapPut("/{id:int}/reject", RejectAsync).RequireAuthorization("AdminOnly");
+        group.MapPut("/{id:int}/highlight", HighlightAsync).RequireAuthorization("AdminOnly");
+        group.MapDelete("/{id:int}/highlight", UnhighlightAsync).RequireAuthorization("AdminOnly");
     }
 
     private async Task<IResult> ListAsync(
@@ -36,6 +38,7 @@ public class ServiceModule : BaseModule
         int pageSize = 20,
         string? search = null,
         string? status = null,
+        bool? isHighlighted = null,
         string? sortBy = null,
         string? sortOrder = null,
         CancellationToken ct = default)
@@ -51,6 +54,9 @@ public class ServiceModule : BaseModule
 
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<EAdvertisementStatus>(status, true, out var parsedStatus))
             query = query.Where(x => x.Status == parsedStatus);
+
+        if (isHighlighted.HasValue)
+            query = query.Where(x => x.IsHighlighted == isHighlighted.Value);
 
         var ascending = string.Equals(sortOrder, "asc", StringComparison.OrdinalIgnoreCase);
         query = sortBy?.ToLower() switch
@@ -95,6 +101,7 @@ public class ServiceModule : BaseModule
         [FromForm] int[] categoryIds,
         [FromForm] string phoneAreaCode,
         [FromForm] string phoneNumber,
+        [FromForm] string? videoUrl,
         [FromForm] int mainImageIndex,
         IFormFileCollection images,
         CancellationToken ct)
@@ -128,6 +135,7 @@ public class ServiceModule : BaseModule
         };
         service.SetCategories(categories);
         service.SetPhone(Phone.Create(phoneAreaCode, phoneNumber));
+        service.SetVideoUrl(videoUrl);
 
         var orderedFiles = images.ToList();
         var mainFile = orderedFiles[mainImageIndex];
@@ -173,6 +181,7 @@ public class ServiceModule : BaseModule
         if (!string.IsNullOrWhiteSpace(request.PhoneAreaCode) && !string.IsNullOrWhiteSpace(request.PhoneNumber))
             service.SetPhone(Phone.Create(request.PhoneAreaCode, request.PhoneNumber));
 
+        service.SetVideoUrl(request.VideoUrl);
         service.ResetToPendingApproval();
         await db.SaveChangesAsync(ct);
 
@@ -231,5 +240,31 @@ public class ServiceModule : BaseModule
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(ServiceResponse.FromEntity(service));
+    }
+
+    private async Task<IResult> HighlightAsync(
+        [FromServices] AppDbContext db,
+        [FromRoute] int id,
+        CancellationToken ct)
+    {
+        var service = await db.Services.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
+        if (service is null)
+            return Results.NotFound();
+        service.SetHighlighted(true);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { service.Id, service.IsHighlighted });
+    }
+
+    private async Task<IResult> UnhighlightAsync(
+        [FromServices] AppDbContext db,
+        [FromRoute] int id,
+        CancellationToken ct)
+    {
+        var service = await db.Services.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
+        if (service is null)
+            return Results.NotFound();
+        service.SetHighlighted(false);
+        await db.SaveChangesAsync(ct);
+        return Results.NoContent();
     }
 }

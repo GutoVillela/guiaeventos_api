@@ -1,5 +1,7 @@
 ﻿using Infrastructure.BackgroundJobs;
+using Infrastructure.FileStorage;
 using Microsoft.Extensions.DependencyInjection;
+using Presentation.FileStorage;
 using Quartz;
 
 namespace Infrastructure;
@@ -9,6 +11,14 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, bool isProduction)
     {
         AddBackgroundServices(services);
+        if(isProduction)
+        {
+            services.AddSingleton<IFileStorageService, GoogleCloudFileStorageService>();
+        }
+        else
+        {
+            services.AddSingleton<IFileStorageService, LocalFileStorageService>();
+        }
         return services;
     }
 

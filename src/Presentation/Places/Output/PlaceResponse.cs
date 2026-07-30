@@ -13,6 +13,7 @@ public record PlaceResponse(
     string Description,
     string Summary,
     string Status,
+    bool IsHighlighted,
     string CreatedBy,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
@@ -22,6 +23,7 @@ public record PlaceResponse(
     string? ApprovedBy,
     DateTimeOffset? ApprovedAt,
     string? Phone,
+    string? VideoUrl,
     LocationResponse Location,
     IEnumerable<CategorySummary> Categories,
     IEnumerable<ImageResponse> Images
@@ -33,6 +35,7 @@ public record PlaceResponse(
         place.Description,
         place.Summary,
         place.Status.ToString(),
+        place.IsHighlighted,
         place.CreatedBy,
         place.CreatedAt,
         place.UpdatedAt,
@@ -42,6 +45,7 @@ public record PlaceResponse(
         place.ApprovedBy,
         place.ApprovedAt,
         place.Phone?.ToString(),
+        place.VideoUrl,
         LocationResponse.FromAddress(place.Location),
         place.Categories.Select(c => new CategorySummary(c.Id, c.Name)),
         place.Images.Select(i => new ImageResponse(i.Url, i.AltText))

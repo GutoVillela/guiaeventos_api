@@ -24,6 +24,8 @@ public class PostModule : BaseModule
         group.MapPut("/{id:int}", UpdateAsync).RequireAuthorization();
         group.MapPost("/{id:int}/publish", PublishAsync).RequireAuthorization("AdminOnly");
         group.MapDelete("/{id:int}/publish", UnpublishAsync).RequireAuthorization("AdminOnly");
+        group.MapPost("/{id:int}/highlight", HighlightAsync).RequireAuthorization("AdminOnly");
+        group.MapDelete("/{id:int}/highlight", UnhighlightAsync).RequireAuthorization("AdminOnly");
         group.MapDelete("/{id:int}", DeleteAsync).RequireAuthorization();
     }
 
@@ -33,6 +35,7 @@ public class PostModule : BaseModule
         int pageSize = 20,
         bool publishedOnly = false,
         int? authorId = null,
+        bool? isHighlighted = null,
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
@@ -48,6 +51,9 @@ public class PostModule : BaseModule
 
         if (authorId.HasValue)
             query = query.Where(x => x.AuthorId == authorId.Value);
+
+        if (isHighlighted.HasValue)
+            query = query.Where(x => x.IsHighlighted == isHighlighted.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(x => x.Title.Contains(search));
@@ -168,6 +174,32 @@ public class PostModule : BaseModule
         post.Unpublish();
         await db.SaveChangesAsync(ct);
 
+        return Results.NoContent();
+    }
+
+    private async Task<IResult> HighlightAsync(
+        [FromServices] AppDbContext db,
+        [FromRoute] int id,
+        CancellationToken ct)
+    {
+        var post = await db.Posts.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (post is null)
+            return Results.NotFound();
+        post.SetHighlighted(true);
+        await db.SaveChangesAsync(ct);
+        return Results.Ok(new { post.Id, post.IsHighlighted });
+    }
+
+    private async Task<IResult> UnhighlightAsync(
+        [FromServices] AppDbContext db,
+        [FromRoute] int id,
+        CancellationToken ct)
+    {
+        var post = await db.Posts.FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (post is null)
+            return Results.NotFound();
+        post.SetHighlighted(false);
+        await db.SaveChangesAsync(ct);
         return Results.NoContent();
     }
 
