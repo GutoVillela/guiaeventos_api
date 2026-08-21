@@ -24,7 +24,7 @@ public class ServiceModule : BaseModule
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
         group.MapPost("/", CreateAsync).RequireAuthorization().DisableAntiforgery();
-        group.MapPut("/{id:int}", UpdateAsync);
+        group.MapPut("/{id:int}", UpdateAsync).DisableAntiforgery();
         group.MapDelete("/{id:int}", DeleteAsync);
         group.MapPut("/{id:int}/approve", ApproveAsync).RequireAuthorization("AdminOnly");
         group.MapPut("/{id:int}/reject", RejectAsync).RequireAuthorization("AdminOnly");
@@ -158,30 +158,68 @@ public class ServiceModule : BaseModule
 
     private async Task<IResult> UpdateAsync(
         [FromServices] AppDbContext db,
+        [FromServices] IFileStorageService fileStorage,
         [FromRoute] int id,
-        [FromBody] UpdateServiceRequest request,
+        HttpContext httpContext,
         CancellationToken ct)
     {
+        var form = await httpContext.Request.ReadFormAsync(ct);
+
+        var name = form["name"].ToString();
+        var description = form["description"].ToString();
+        var summary = form["summary"].FirstOrDefault();
+        var categoryIds = form["categoryIds"]
+            .Select(s => int.TryParse(s, out var i) ? (int?)i : null)
+            .Where(i => i.HasValue).Select(i => i!.Value).ToArray();
+        var phoneAreaCode = form["phoneAreaCode"].ToString();
+        var phoneNumber = form["phoneNumber"].ToString();
+        var videoUrl = form["videoUrl"].FirstOrDefault();
+        var updateImages = "true".Equals(form["updateImages"].ToString(), StringComparison.OrdinalIgnoreCase);
+        var keepImageUrls = form["keepImageUrls"].ToArray();
+        var newImages = form.Files.GetFiles("newImages");
+
         var service = await db.Services
             .Include(x => x.Categories)
+            .Include(x => x.Images)
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
         if (service is null)
             return Results.NotFound();
 
-        service.Update(request.Name, request.Description, request.Summary ?? string.Empty);
+        service.Update(name, description, summary ?? string.Empty);
 
-        if (request.CategoryIds is { Length: > 0 })
+        if (categoryIds is { Length: > 0 })
         {
             var categories = await db.Categories
-                .Where(c => request.CategoryIds.Contains(c.Id))
+                .Where(c => categoryIds.Contains(c.Id))
                 .ToListAsync(ct);
             service.SetCategories(categories);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.PhoneAreaCode) && !string.IsNullOrWhiteSpace(request.PhoneNumber))
-            service.SetPhone(Phone.Create(request.PhoneAreaCode, request.PhoneNumber));
+        if (!string.IsNullOrWhiteSpace(phoneAreaCode) && !string.IsNullOrWhiteSpace(phoneNumber))
+            service.SetPhone(Phone.Create(phoneAreaCode, phoneNumber));
 
-        service.SetVideoUrl(request.VideoUrl);
+        service.SetVideoUrl(videoUrl);
+
+        if (updateImages)
+        {
+            var imageList = new List<Image>();
+
+            foreach (var url in keepImageUrls)
+            {
+                var existing = service.Images.FirstOrDefault(img => img.Url == url);
+                if (existing is not null)
+                    imageList.Add(existing);
+            }
+
+            foreach (var file in newImages)
+            {
+                var uploadedUrl = await fileStorage.UploadAsync(file, ct);
+                imageList.Add(Image.Create(uploadedUrl, null));
+            }
+
+            service.SetImages(imageList);
+        }
+
         service.ResetToPendingApproval();
         await db.SaveChangesAsync(ct);
 

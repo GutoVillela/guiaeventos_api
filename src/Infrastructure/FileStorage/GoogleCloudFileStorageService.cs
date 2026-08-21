@@ -23,6 +23,7 @@ public class GoogleCloudFileStorageService : IFileStorageService
         try
         {
             credential = GoogleCredential.GetApplicationDefault();
+            _logger.LogInformation("Credential creation success - using default credentials");
         }
         catch (AggregateException e)
         {

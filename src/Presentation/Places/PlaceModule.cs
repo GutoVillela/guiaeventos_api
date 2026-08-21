@@ -24,7 +24,7 @@ public class PlaceModule : BaseModule
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
         group.MapPost("/", CreateAsync).RequireAuthorization().DisableAntiforgery();
-        group.MapPut("/{id:int}", UpdateAsync);
+        group.MapPut("/{id:int}", UpdateAsync).DisableAntiforgery();
         group.MapDelete("/{id:int}", DeleteAsync);
         group.MapPut("/{id:int}/approve", ApproveAsync).RequireAuthorization("AdminOnly");
         group.MapPut("/{id:int}/reject", RejectAsync).RequireAuthorization("AdminOnly");
@@ -178,41 +178,88 @@ public class PlaceModule : BaseModule
 
     private async Task<IResult> UpdateAsync(
         [FromServices] AppDbContext db,
+        [FromServices] IFileStorageService fileStorage,
         [FromRoute] int id,
-        [FromBody] UpdatePlaceRequest request,
+        HttpContext httpContext,
         CancellationToken ct)
     {
+        var form = await httpContext.Request.ReadFormAsync(ct);
+
+        var name = form["name"].ToString();
+        var description = form["description"].ToString();
+        var summary = form["summary"].FirstOrDefault();
+        var categoryIds = form["categoryIds"]
+            .Select(s => int.TryParse(s, out var i) ? (int?)i : null)
+            .Where(i => i.HasValue).Select(i => i!.Value).ToArray();
+        var street = form["street"].ToString();
+        var neighborhood = form["neighborhood"].FirstOrDefault();
+        var city = form["city"].ToString();
+        var state = form["state"].ToString();
+        var country = form["country"].ToString();
+        var zipCode = form["zipCode"].FirstOrDefault();
+        var number = form["number"].FirstOrDefault();
+        var complement = form["complement"].FirstOrDefault();
+        var referencePoint = form["referencePoint"].FirstOrDefault();
+        var phoneAreaCode = form["phoneAreaCode"].ToString();
+        var phoneNumber = form["phoneNumber"].ToString();
+        var videoUrl = form["videoUrl"].FirstOrDefault();
+        var updateImages = "true".Equals(form["updateImages"].ToString(), StringComparison.OrdinalIgnoreCase);
+        var keepImageUrls = form["keepImageUrls"].ToArray();
+        var newImages = form.Files.GetFiles("newImages");
+
         var place = await db.Places
             .Include(x => x.Categories)
+            .Include(x => x.Images)
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
         if (place is null)
             return Results.NotFound();
 
         var location = Address.Create(
-            request.Street,
-            request.Neighborhood ?? string.Empty,
-            request.City,
-            request.State,
-            request.Country,
-            request.ZipCode ?? string.Empty,
-            request.Number ?? string.Empty,
-            request.Complement ?? string.Empty,
-            request.ReferencePoint ?? string.Empty);
+            street,
+            neighborhood ?? string.Empty,
+            city,
+            state,
+            country,
+            zipCode ?? string.Empty,
+            number ?? string.Empty,
+            complement ?? string.Empty,
+            referencePoint ?? string.Empty);
 
-        place.Update(request.Name, request.Description, request.Summary ?? string.Empty, location);
+        place.Update(name, description, summary ?? string.Empty, location);
 
-        if (request.CategoryIds is { Length: > 0 })
+        if (categoryIds is { Length: > 0 })
         {
             var categories = await db.Categories
-                .Where(c => request.CategoryIds.Contains(c.Id))
+                .Where(c => categoryIds.Contains(c.Id))
                 .ToListAsync(ct);
             place.SetCategories(categories);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.PhoneAreaCode) && !string.IsNullOrWhiteSpace(request.PhoneNumber))
-            place.SetPhone(Phone.Create(request.PhoneAreaCode, request.PhoneNumber));
+        if (!string.IsNullOrWhiteSpace(phoneAreaCode) && !string.IsNullOrWhiteSpace(phoneNumber))
+            place.SetPhone(Phone.Create(phoneAreaCode, phoneNumber));
 
-        place.SetVideoUrl(request.VideoUrl);
+        place.SetVideoUrl(videoUrl);
+
+        if (updateImages)
+        {
+            var imageList = new List<Image>();
+
+            foreach (var url in keepImageUrls)
+            {
+                var existing = place.Images.FirstOrDefault(img => img.Url == url);
+                if (existing is not null)
+                    imageList.Add(existing);
+            }
+
+            foreach (var file in newImages)
+            {
+                var uploadedUrl = await fileStorage.UploadAsync(file, ct);
+                imageList.Add(Image.Create(uploadedUrl, null));
+            }
+
+            place.SetImages(imageList);
+        }
+
         place.ResetToPendingApproval();
         await db.SaveChangesAsync(ct);
 

@@ -4,7 +4,6 @@ using Domain.Entities;
 using Domain.Enums;
 using Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
@@ -13,6 +12,7 @@ using Repository;
 using System.Text;
 using WebAPI.Configuration;
 using WebAPI.Exceptions;
+;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddEnvironmentVariables();
@@ -67,7 +67,7 @@ if (builder.Environment.IsDevelopment())
                   .AllowAnyMethod()));
 }
 
-// Tempor�rio, remover antes de ir para prod
+// Temporário, remover antes de ir para prod
 builder.Services.AddCors(options =>
     options.AddDefaultPolicy(policy =>
         policy.AllowAnyOrigin()
@@ -120,6 +120,7 @@ if (app.Environment.IsDevelopment())
 }
 
 var rawUploadPath = builder.Configuration["FileStorage:LocalPath"];
+
 var uploadPath = !string.IsNullOrEmpty(rawUploadPath) && Path.IsPathRooted(rawUploadPath)
     ? rawUploadPath
     : Path.Combine(Path.GetTempPath(), "guiaeventos", "uploads");

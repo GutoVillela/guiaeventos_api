@@ -362,6 +362,10 @@ MigrationBackup/
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
 
+# Google Cloud credentials
+client_secret_*.json
+guia-eventos-*.json
+
 # OS generated files #
 ######################
 .DS_Store
