@@ -127,6 +127,7 @@ public class PlaceModule : BaseModule
         [FromForm] string phoneAreaCode,
         [FromForm] string phoneNumber,
         [FromForm] string? videoUrl,
+        [FromForm] string? slug,
         [FromForm] int mainImageIndex,
         IFormFileCollection images,
         CancellationToken ct)
@@ -169,7 +170,8 @@ public class PlaceModule : BaseModule
         {
             CreatedBy = "system"
         };
-        var uniqueSlug = await EnsureUniqueSlugAsync(db, place.Slug ?? SlugHelper.Generate(name), null, ct);
+        var baseSlug = !string.IsNullOrWhiteSpace(slug) ? SlugHelper.Generate(slug) : place.Slug;
+        var uniqueSlug = await EnsureUniqueSlugAsync(db, baseSlug, null, ct);
         if (uniqueSlug != place.Slug) place.SetSlug(uniqueSlug);
         place.SetCategories(categories);
         place.SetPhone(Phone.Create(phoneAreaCode, phoneNumber));
@@ -222,6 +224,7 @@ public class PlaceModule : BaseModule
         var phoneAreaCode = form["phoneAreaCode"].ToString();
         var phoneNumber = form["phoneNumber"].ToString();
         var videoUrl = form["videoUrl"].FirstOrDefault();
+        var slug = form["slug"].FirstOrDefault();
         var updateImages = "true".Equals(form["updateImages"].ToString(), StringComparison.OrdinalIgnoreCase);
         var keepImageUrls = form["keepImageUrls"].ToArray();
         var newImages = form.Files.GetFiles("newImages");
@@ -245,6 +248,13 @@ public class PlaceModule : BaseModule
             referencePoint ?? string.Empty);
 
         place.Update(name, description, summary ?? string.Empty, location);
+
+        if (!string.IsNullOrWhiteSpace(slug))
+        {
+            var baseSlug = SlugHelper.Generate(slug);
+            var uniqueSlug = await EnsureUniqueSlugAsync(db, baseSlug, id, ct);
+            place.SetSlug(uniqueSlug);
+        }
 
         if (categoryIds is { Length: > 0 })
         {

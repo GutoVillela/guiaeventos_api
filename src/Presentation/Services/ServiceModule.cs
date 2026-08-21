@@ -120,6 +120,7 @@ public class ServiceModule : BaseModule
         [FromForm] string phoneAreaCode,
         [FromForm] string phoneNumber,
         [FromForm] string? videoUrl,
+        [FromForm] string? slug,
         [FromForm] int mainImageIndex,
         IFormFileCollection images,
         CancellationToken ct)
@@ -151,7 +152,8 @@ public class ServiceModule : BaseModule
         {
             CreatedBy = "system"
         };
-        var uniqueSlug = await EnsureUniqueSlugAsync(db, service.Slug ?? SlugHelper.Generate(name), null, ct);
+        var baseSlug = !string.IsNullOrWhiteSpace(slug) ? SlugHelper.Generate(slug) : service.Slug;
+        var uniqueSlug = await EnsureUniqueSlugAsync(db, baseSlug, null, ct);
         if (uniqueSlug != service.Slug) service.SetSlug(uniqueSlug);
         service.SetCategories(categories);
         service.SetPhone(Phone.Create(phoneAreaCode, phoneNumber));
@@ -194,6 +196,7 @@ public class ServiceModule : BaseModule
         var phoneAreaCode = form["phoneAreaCode"].ToString();
         var phoneNumber = form["phoneNumber"].ToString();
         var videoUrl = form["videoUrl"].FirstOrDefault();
+        var slug = form["slug"].FirstOrDefault();
         var updateImages = "true".Equals(form["updateImages"].ToString(), StringComparison.OrdinalIgnoreCase);
         var keepImageUrls = form["keepImageUrls"].ToArray();
         var newImages = form.Files.GetFiles("newImages");
@@ -206,6 +209,13 @@ public class ServiceModule : BaseModule
             return Results.NotFound();
 
         service.Update(name, description, summary ?? string.Empty);
+
+        if (!string.IsNullOrWhiteSpace(slug))
+        {
+            var baseSlug = SlugHelper.Generate(slug);
+            var uniqueSlug = await EnsureUniqueSlugAsync(db, baseSlug, id, ct);
+            service.SetSlug(uniqueSlug);
+        }
 
         if (categoryIds is { Length: > 0 })
         {

@@ -9,7 +9,7 @@ public record ImageResponse(string Url, string? AltText);
 
 public record PlaceResponse(
     int Id,
-    string? Slug,
+    string Slug,
     string Name,
     string Description,
     string Summary,

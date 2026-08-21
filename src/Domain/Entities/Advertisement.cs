@@ -9,7 +9,7 @@ namespace Domain.Entities;
 public abstract class Advertisement : Entity
 {
     public string Name { get; private set; } = string.Empty;
-    public string? Slug { get; private set; }
+    public string Slug { get; private set; } = string.Empty;
     public string Description { get; private set; } = string.Empty;
     public string Summary { get; private set; } = string.Empty;
     public EAdvertisementStatus Status { get; private set; } = EAdvertisementStatus.PendingApproval;

@@ -7,7 +7,7 @@ public record ImageResponse(string Url, string? AltText);
 
 public record ServiceResponse(
     int Id,
-    string? Slug,
+    string Slug,
     string Name,
     string Description,
     string Summary,
