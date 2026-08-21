@@ -111,6 +111,21 @@ using (var scope = app.Services.CreateScope())
     {
         logger.LogError(ex, "Falha ao criar usuário administrador padrão.");
     }
+
+    try
+    {
+        var anySettings = await db.SiteSettings.AnyAsync();
+        if (!anySettings)
+        {
+            db.SiteSettings.Add(new SiteSettings("system"));
+            await db.SaveChangesAsync();
+            logger.LogInformation("Configuracoes do site criadas com sucesso.");
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Falha ao criar configuracoes do site.");
+    }
 }
 
 if (app.Environment.IsDevelopment())

@@ -75,6 +75,7 @@ public class AppDbContext : DbContext
     public DbSet<Post> Posts => Set<Post>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Lead> Leads => Set<Lead>();
+    public DbSet<SiteSettings> SiteSettings => Set<SiteSettings>();
     internal DbSet<OutboxMessage> OutboxMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
