@@ -18,6 +18,8 @@ internal class AdvertisementMap : EntityMap<Advertisement>
             .HasValue<Service>("Service");
 
         builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
+        builder.Property(x => x.Slug).HasMaxLength(400).IsRequired(false);
+        builder.HasIndex(x => x.Slug).IsUnique();
         builder.Property(x => x.Description).IsRequired();
         builder.Property(x => x.Summary).HasMaxLength(1000).IsRequired(false);
         builder.Property(x => x.Website).HasMaxLength(300).IsRequired(false);

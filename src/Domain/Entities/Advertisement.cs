@@ -1,5 +1,6 @@
 using Domain.DomainEvents;
 using Domain.Enums;
+using Domain.Helpers;
 using Domain.Primitives;
 using Domain.ValueObjects;
 
@@ -8,6 +9,7 @@ namespace Domain.Entities;
 public abstract class Advertisement : Entity
 {
     public string Name { get; private set; } = string.Empty;
+    public string? Slug { get; private set; }
     public string Description { get; private set; } = string.Empty;
     public string Summary { get; private set; } = string.Empty;
     public EAdvertisementStatus Status { get; private set; } = EAdvertisementStatus.PendingApproval;
@@ -32,10 +34,17 @@ public abstract class Advertisement : Entity
     protected Advertisement(string name, string description, string summary, User advertiser)
     {
         Name = name;
+        Slug = SlugHelper.Generate(name);
         Description = description;
         Summary = summary;
         Advertiser = advertiser;
         RaiseDomainEvent(new AdvertisementCreatedDomainEvent());
+    }
+
+    public void SetSlug(string slug)
+    {
+        Slug = slug;
+        UpdatedAt = DateTimeOffset.UtcNow;
     }
 
     protected void UpdateBase(string name, string description, string summary)

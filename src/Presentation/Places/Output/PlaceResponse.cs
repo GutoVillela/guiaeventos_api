@@ -9,6 +9,7 @@ public record ImageResponse(string Url, string? AltText);
 
 public record PlaceResponse(
     int Id,
+    string? Slug,
     string Name,
     string Description,
     string Summary,
@@ -31,6 +32,7 @@ public record PlaceResponse(
 {
     public static PlaceResponse FromEntity(Place place) => new(
         place.Id,
+        place.Slug,
         place.Name,
         place.Description,
         place.Summary,

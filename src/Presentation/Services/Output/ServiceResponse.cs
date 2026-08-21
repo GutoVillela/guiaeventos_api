@@ -7,6 +7,7 @@ public record ImageResponse(string Url, string? AltText);
 
 public record ServiceResponse(
     int Id,
+    string? Slug,
     string Name,
     string Description,
     string Summary,
@@ -28,6 +29,7 @@ public record ServiceResponse(
 {
     public static ServiceResponse FromEntity(Service service) => new(
         service.Id,
+        service.Slug,
         service.Name,
         service.Description,
         service.Summary,

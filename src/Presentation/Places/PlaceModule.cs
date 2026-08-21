@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Domain.Entities;
 using Domain.Enums;
+using Domain.Helpers;
 using Domain.ValueObjects;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -23,6 +24,7 @@ public class PlaceModule : BaseModule
         var group = app.MapGroup(BasePath).WithTags("Places");
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
+        group.MapGet("/{slug}", GetBySlugAsync);
         group.MapPost("/", CreateAsync).RequireAuthorization().DisableAntiforgery();
         group.MapPut("/{id:int}", UpdateAsync).DisableAntiforgery();
         group.MapDelete("/{id:int}", DeleteAsync);
@@ -84,6 +86,21 @@ public class PlaceModule : BaseModule
             .Include(x => x.Categories)
             .Include(x => x.Images)
             .FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
+        if (place is null)
+            return Results.NotFound();
+
+        return Results.Ok(PlaceResponse.FromEntity(place));
+    }
+
+    private async Task<IResult> GetBySlugAsync(
+        [FromServices] AppDbContext db,
+        [FromRoute] string slug,
+        CancellationToken ct)
+    {
+        var place = await db.Places
+            .Include(x => x.Categories)
+            .Include(x => x.Images)
+            .FirstOrDefaultAsync(x => x.Slug == slug && !x.IsDeleted, ct);
         if (place is null)
             return Results.NotFound();
 
@@ -152,6 +169,8 @@ public class PlaceModule : BaseModule
         {
             CreatedBy = "system"
         };
+        var uniqueSlug = await EnsureUniqueSlugAsync(db, place.Slug ?? SlugHelper.Generate(name), null, ct);
+        if (uniqueSlug != place.Slug) place.SetSlug(uniqueSlug);
         place.SetCategories(categories);
         place.SetPhone(Phone.Create(phoneAreaCode, phoneNumber));
         place.SetVideoUrl(videoUrl);
@@ -337,5 +356,18 @@ public class PlaceModule : BaseModule
         place.SetHighlighted(false);
         await db.SaveChangesAsync(ct);
         return Results.NoContent();
+    }
+
+    private static async Task<string> EnsureUniqueSlugAsync(
+        AppDbContext db, string baseSlug, int? excludeId, CancellationToken ct)
+    {
+        var slug = baseSlug;
+        var counter = 2;
+        while (await db.Set<Advertisement>()
+            .AnyAsync(x => x.Slug == slug && !x.IsDeleted && (excludeId == null || x.Id != excludeId), ct))
+        {
+            slug = $"{baseSlug}-{counter++}";
+        }
+        return slug;
     }
 }
