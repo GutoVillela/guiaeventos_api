@@ -20,6 +20,7 @@ public class LeadModule : BaseModule
         var group = app.MapGroup(BasePath).WithTags("Leads");
         group.MapPost("/", CreateAsync);
         group.MapGet("/", ListAsync).RequireAuthorization("AdminOnly");
+        group.MapGet("/report", GetReportAsync).RequireAuthorization("AdminOnly");
         group.MapGet("/export", ExportCsvAsync).RequireAuthorization("AdminOnly");
         group.MapPut("/{id:int}/read", MarkAsReadAsync).RequireAuthorization("AdminOnly");
         group.MapPut("/bulk-read", BulkMarkAsReadAsync).RequireAuthorization("AdminOnly");
@@ -33,24 +34,37 @@ public class LeadModule : BaseModule
         CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(request.Name))
-            return Results.BadRequest("Nome é obrigatório.");
+            return Results.BadRequest("Nome e obrigatorio.");
         if (string.IsNullOrWhiteSpace(request.Email))
-            return Results.BadRequest("E-mail é obrigatório.");
-        if (string.IsNullOrWhiteSpace(request.Phone))
-            return Results.BadRequest("Telefone é obrigatório.");
-        if (request.AdvertisementId <= 0)
-            return Results.BadRequest("Anúncio inválido.");
+            return Results.BadRequest("E-mail e obrigatorio.");
 
-        var lead = new Lead(
-            request.Name.Trim(),
-            request.Email.Trim().ToLowerInvariant(),
-            request.Phone.Trim(),
-            request.Company?.Trim(),
-            request.AdvertisementId,
-            request.AdvertisementType)
+        Lead lead;
+
+        if (request.Source == "ContactForm")
         {
-            CreatedBy = "visitor"
-        };
+            lead = new Lead(
+                request.Name.Trim(),
+                request.Email.Trim(),
+                request.Subject?.Trim(),
+                request.Message?.Trim())
+            { CreatedBy = "visitor" };
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(request.Phone))
+                return Results.BadRequest("Telefone e obrigatorio para leads de anuncio.");
+            if (request.AdvertisementId is null or <= 0)
+                return Results.BadRequest("Anuncio invalido.");
+
+            lead = new Lead(
+                request.Name.Trim(),
+                request.Email.Trim(),
+                request.Phone.Trim(),
+                request.Company?.Trim(),
+                request.AdvertisementId.Value,
+                request.AdvertisementType ?? "Place")
+            { CreatedBy = "visitor" };
+        }
 
         db.Leads.Add(lead);
         await db.SaveChangesAsync(ct);
@@ -65,6 +79,7 @@ public class LeadModule : BaseModule
         string? search = null,
         string? company = null,
         bool? isRead = null,
+        string? source = null,
         string? advertisementType = null,
         int? advertisementId = null,
         CancellationToken ct = default)
@@ -79,6 +94,9 @@ public class LeadModule : BaseModule
 
         if (isRead.HasValue)
             query = query.Where(x => x.IsRead == isRead.Value);
+
+        if (!string.IsNullOrWhiteSpace(source))
+            query = query.Where(x => x.Source == source);
 
         if (!string.IsNullOrWhiteSpace(advertisementType))
             query = query.Where(x => x.AdvertisementType == advertisementType);
@@ -97,11 +115,72 @@ public class LeadModule : BaseModule
         return Results.Ok(new { total, page, pageSize, items = items.Select(LeadResponse.FromEntity) });
     }
 
+    private async Task<IResult> GetReportAsync(
+        [FromServices] AppDbContext db,
+        CancellationToken ct)
+    {
+        var leads = await db.Leads.Where(x => !x.IsDeleted).ToListAsync(ct);
+
+        var total = leads.Count;
+
+        var bySource = leads
+            .GroupBy(x => x.Source)
+            .Select(g => new { source = g.Key, count = g.Count() })
+            .OrderByDescending(x => x.count)
+            .ToList();
+
+        var adLeads = leads.Where(x => x.AdvertisementId.HasValue).ToList();
+        var placeIds = adLeads
+            .Where(x => x.AdvertisementType == "Place")
+            .Select(x => x.AdvertisementId!.Value).Distinct().ToList();
+        var serviceIds = adLeads
+            .Where(x => x.AdvertisementType == "Service")
+            .Select(x => x.AdvertisementId!.Value).Distinct().ToList();
+
+        var places = placeIds.Count > 0
+            ? await db.Places.IgnoreQueryFilters()
+                .Where(x => placeIds.Contains(x.Id))
+                .Select(x => new { x.Id, x.Name })
+                .ToListAsync(ct)
+            : [];
+
+        var services = serviceIds.Count > 0
+            ? await db.Services.IgnoreQueryFilters()
+                .Where(x => serviceIds.Contains(x.Id))
+                .Select(x => new { x.Id, x.Name })
+                .ToListAsync(ct)
+            : [];
+
+        var adNameMap = new Dictionary<string, string>();
+        foreach (var p in places) adNameMap[$"Place:{p.Id}"] = p.Name;
+        foreach (var s in services) adNameMap[$"Service:{s.Id}"] = s.Name;
+
+        var byAdvertisement = adLeads
+            .GroupBy(x => new { x.AdvertisementId, x.AdvertisementType })
+            .Select(g =>
+            {
+                var key = $"{g.Key.AdvertisementType}:{g.Key.AdvertisementId}";
+                return new
+                {
+                    advertisementId = g.Key.AdvertisementId,
+                    advertisementType = g.Key.AdvertisementType ?? string.Empty,
+                    advertisementName = adNameMap.TryGetValue(key, out var n) ? n : $"Anuncio #{g.Key.AdvertisementId}",
+                    count = g.Count()
+                };
+            })
+            .OrderByDescending(x => x.count)
+            .Take(20)
+            .ToList();
+
+        return Results.Ok(new { total, bySource, byAdvertisement });
+    }
+
     private async Task<IResult> ExportCsvAsync(
         [FromServices] AppDbContext db,
         string? search = null,
         string? company = null,
         bool? isRead = null,
+        string? source = null,
         string? advertisementType = null,
         int? advertisementId = null,
         string? ids = null,
@@ -113,25 +192,21 @@ public class LeadModule : BaseModule
         {
             var idList = ids.Split(',')
                 .Select(s => int.TryParse(s.Trim(), out var v) ? (int?)v : null)
-                .Where(v => v.HasValue)
-                .Select(v => v!.Value)
-                .ToList();
+                .Where(v => v.HasValue).Select(v => v!.Value).ToList();
             query = query.Where(x => idList.Contains(x.Id));
         }
         else
         {
             if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(x => x.Name.Contains(search) || x.Email.Contains(search));
-
             if (!string.IsNullOrWhiteSpace(company))
                 query = query.Where(x => x.Company != null && x.Company.Contains(company));
-
             if (isRead.HasValue)
                 query = query.Where(x => x.IsRead == isRead.Value);
-
+            if (!string.IsNullOrWhiteSpace(source))
+                query = query.Where(x => x.Source == source);
             if (!string.IsNullOrWhiteSpace(advertisementType))
                 query = query.Where(x => x.AdvertisementType == advertisementType);
-
             if (advertisementId.HasValue)
                 query = query.Where(x => x.AdvertisementId == advertisementId.Value);
         }
@@ -139,17 +214,20 @@ public class LeadModule : BaseModule
         var items = await query.OrderByDescending(x => x.CreatedAt).ToListAsync(ct);
 
         var sb = new StringBuilder();
-        sb.AppendLine("Id,Nome,Email,Telefone,Empresa,Tipo Anuncio,ID Anuncio,Lido,Data");
+        sb.AppendLine("Id,Origem,Nome,Email,Telefone,Empresa,Tipo Anuncio,ID Anuncio,Assunto,Mensagem,Lido,Data");
         foreach (var item in items)
         {
             sb.AppendLine(string.Join(",",
                 item.Id,
+                CsvEscape(item.Source),
                 CsvEscape(item.Name),
                 CsvEscape(item.Email),
-                CsvEscape(item.Phone),
+                CsvEscape(item.Phone ?? ""),
                 CsvEscape(item.Company ?? ""),
-                CsvEscape(item.AdvertisementType),
-                item.AdvertisementId,
+                CsvEscape(item.AdvertisementType ?? ""),
+                item.AdvertisementId?.ToString() ?? "",
+                CsvEscape(item.Subject ?? ""),
+                CsvEscape(item.Message ?? ""),
                 item.IsRead ? "Sim" : "Nao",
                 item.CreatedAt.ToString("dd/MM/yyyy HH:mm")));
         }
@@ -171,14 +249,11 @@ public class LeadModule : BaseModule
         CancellationToken ct)
     {
         if (request.Ids is not { Count: > 0 }) return Results.BadRequest("Nenhum ID informado.");
-
         var leads = await db.Leads
             .Where(x => request.Ids.Contains(x.Id) && !x.IsDeleted && !x.IsRead)
             .ToListAsync(ct);
-
         foreach (var lead in leads) lead.MarkAsRead();
         await db.SaveChangesAsync(ct);
-
         return Results.Ok(new { updated = leads.Count });
     }
 
@@ -188,18 +263,15 @@ public class LeadModule : BaseModule
         CancellationToken ct)
     {
         if (request.Ids is not { Count: > 0 }) return Results.BadRequest("Nenhum ID informado.");
-
         var leads = await db.Leads
             .Where(x => request.Ids.Contains(x.Id) && !x.IsDeleted)
             .ToListAsync(ct);
-
         foreach (var lead in leads)
         {
             lead.IsDeleted = true;
             lead.UpdatedAt = DateTimeOffset.UtcNow;
         }
         await db.SaveChangesAsync(ct);
-
         return Results.Ok(new { deleted = leads.Count });
     }
 
@@ -210,10 +282,8 @@ public class LeadModule : BaseModule
     {
         var lead = await db.Leads.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
         if (lead is null) return Results.NotFound();
-
         lead.MarkAsRead();
         await db.SaveChangesAsync(ct);
-
         return Results.Ok(LeadResponse.FromEntity(lead));
     }
 
@@ -224,11 +294,9 @@ public class LeadModule : BaseModule
     {
         var lead = await db.Leads.FirstOrDefaultAsync(x => x.Id == id && !x.IsDeleted, ct);
         if (lead is null) return Results.NotFound();
-
         lead.IsDeleted = true;
         lead.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
-
         return Results.NoContent();
     }
 }
