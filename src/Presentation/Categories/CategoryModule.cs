@@ -31,11 +31,15 @@ public class CategoryModule : BaseModule
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
+        bool? hasAdvertisements = null,
         CancellationToken ct = default)
     {
         var query = db.Categories
             .Where(x => !x.IsDeleted)
             .AsQueryable();
+
+        if (hasAdvertisements == true)
+            query = query.Where(x => x.Advertisements.Any(a => !a.IsDeleted));
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(x => x.Name.Contains(search));
