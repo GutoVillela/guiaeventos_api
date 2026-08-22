@@ -13,7 +13,8 @@ public record CategoryResponse(
     int HighlightOrder,
     string? HighlightColor,
     string? HighlightLink,
-    string? HighlightIcon
+    string? HighlightIcon,
+    string CategoryType
 )
 {
     public static CategoryResponse FromEntity(Category category) => new(
@@ -27,6 +28,7 @@ public record CategoryResponse(
         category.HighlightOrder,
         category.HighlightColor,
         category.HighlightLink,
-        category.HighlightIcon
+        category.HighlightIcon,
+        category.Type.ToString()
     );
 }

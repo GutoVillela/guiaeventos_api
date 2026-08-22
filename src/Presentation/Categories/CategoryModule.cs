@@ -41,11 +41,10 @@ public class CategoryModule : BaseModule
 
         if (!string.IsNullOrWhiteSpace(advertisementType))
         {
-            IQueryable<int> catIds = advertisementType.Equals("Place", StringComparison.OrdinalIgnoreCase)
-                ? db.Set<Place>().SelectMany(a => a.Categories.Select(c => c.Id))
-                : db.Set<Service>().SelectMany(a => a.Categories.Select(c => c.Id));
-
-            query = query.Where(x => catIds.Contains(x.Id));
+            var catType = advertisementType.Equals("Service", StringComparison.OrdinalIgnoreCase)
+                ? CategoryType.Service
+                : CategoryType.Place;
+            query = query.Where(x => x.Type == catType);
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -103,7 +102,10 @@ public class CategoryModule : BaseModule
 
         var category = new Category(request.Name, request.Description ?? string.Empty)
         {
-            CreatedBy = "system"
+            CreatedBy = "system",
+            Type = request.CategoryType?.Equals("Service", StringComparison.OrdinalIgnoreCase) == true
+                ? CategoryType.Service
+                : CategoryType.Place,
         };
 
         if (request.IsHighlighted)
@@ -130,6 +132,9 @@ public class CategoryModule : BaseModule
             return Results.Conflict("Another category with this name already exists.");
 
         category.Update(request.Name, request.Description ?? string.Empty);
+        category.Type = request.CategoryType?.Equals("Service", StringComparison.OrdinalIgnoreCase) == true
+            ? CategoryType.Service
+            : CategoryType.Place;
         category.SetHighlight(request.IsHighlighted, request.HighlightOrder, request.HighlightColor, request.HighlightLink, request.HighlightIcon);
         await db.SaveChangesAsync(ct);
 

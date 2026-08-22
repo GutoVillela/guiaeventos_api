@@ -7,5 +7,6 @@ public record UpdateCategoryRequest(
     int HighlightOrder = 0,
     string? HighlightColor = null,
     string? HighlightLink = null,
-    string? HighlightIcon = null
+    string? HighlightIcon = null,
+    string? CategoryType = "Place"
 );

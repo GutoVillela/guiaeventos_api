@@ -11,6 +11,7 @@ public class Category : Entity
     public string? HighlightColor { get; set; }
     public string? HighlightLink { get; set; }
     public string? HighlightIcon { get; set; }
+    public CategoryType Type { get; set; } = CategoryType.Place;
     public IEnumerable<Advertisement> Advertisements { get; private set; } = new List<Advertisement>();
 
     protected Category() { }
