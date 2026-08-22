@@ -39,7 +39,11 @@ public class CategoryModule : BaseModule
             .AsQueryable();
 
         if (hasAdvertisements == true)
-            query = query.Where(x => x.Advertisements.Any(a => !a.IsDeleted));
+        {
+            var catIdsWithAds = db.Set<Advertisement>()
+                .SelectMany(a => a.Categories.Select(c => c.Id));
+            query = query.Where(x => catIdsWithAds.Contains(x.Id));
+        }
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(x => x.Name.Contains(search));
