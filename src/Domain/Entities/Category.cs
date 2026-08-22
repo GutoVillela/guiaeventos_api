@@ -10,6 +10,7 @@ public class Category : Entity
     public int HighlightOrder { get; set; }
     public string? HighlightColor { get; set; }
     public string? HighlightLink { get; set; }
+    public string? HighlightIcon { get; set; }
     public IEnumerable<Advertisement> Advertisements { get; private set; } = new List<Advertisement>();
 
     protected Category() { }
@@ -27,12 +28,13 @@ public class Category : Entity
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 
-    public void SetHighlight(bool isHighlighted, int order, string? color, string? link)
+    public void SetHighlight(bool isHighlighted, int order, string? color, string? link, string? icon)
     {
         IsHighlighted = isHighlighted;
         HighlightOrder = order;
         HighlightColor = string.IsNullOrWhiteSpace(color) ? null : color.Trim();
         HighlightLink = string.IsNullOrWhiteSpace(link) ? null : link.Trim();
+        HighlightIcon = string.IsNullOrWhiteSpace(icon) ? null : icon.Trim();
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

@@ -12,7 +12,8 @@ public record CategoryResponse(
     bool IsHighlighted,
     int HighlightOrder,
     string? HighlightColor,
-    string? HighlightLink
+    string? HighlightLink,
+    string? HighlightIcon
 )
 {
     public static CategoryResponse FromEntity(Category category) => new(
@@ -25,6 +26,7 @@ public record CategoryResponse(
         category.IsHighlighted,
         category.HighlightOrder,
         category.HighlightColor,
-        category.HighlightLink
+        category.HighlightLink,
+        category.HighlightIcon
     );
 }

@@ -107,7 +107,7 @@ public class CategoryModule : BaseModule
         };
 
         if (request.IsHighlighted)
-            category.SetHighlight(true, request.HighlightOrder, request.HighlightColor, request.HighlightLink);
+            category.SetHighlight(true, request.HighlightOrder, request.HighlightColor, request.HighlightLink, request.HighlightIcon);
 
         db.Categories.Add(category);
         await db.SaveChangesAsync(ct);
@@ -130,7 +130,7 @@ public class CategoryModule : BaseModule
             return Results.Conflict("Another category with this name already exists.");
 
         category.Update(request.Name, request.Description ?? string.Empty);
-        category.SetHighlight(request.IsHighlighted, request.HighlightOrder, request.HighlightColor, request.HighlightLink);
+        category.SetHighlight(request.IsHighlighted, request.HighlightOrder, request.HighlightColor, request.HighlightLink, request.HighlightIcon);
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(CategoryResponse.FromEntity(category));

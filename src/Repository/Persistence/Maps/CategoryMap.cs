@@ -18,6 +18,7 @@ internal class CategoryMap : EntityMap<Category>
         builder.Property(x => x.HighlightOrder).HasDefaultValue(0);
         builder.Property(x => x.HighlightColor).HasMaxLength(20).IsRequired(false);
         builder.Property(x => x.HighlightLink).HasMaxLength(500).IsRequired(false);
+        builder.Property(x => x.HighlightIcon).HasMaxLength(50).IsRequired(false);
 
         builder.HasIndex(x => x.Name).IsUnique();
         builder.HasIndex(x => x.IsHighlighted);

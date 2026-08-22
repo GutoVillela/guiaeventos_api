@@ -6,5 +6,6 @@ public record CreateCategoryRequest(
     bool IsHighlighted = false,
     int HighlightOrder = 0,
     string? HighlightColor = null,
-    string? HighlightLink = null
+    string? HighlightLink = null,
+    string? HighlightIcon = null
 );
