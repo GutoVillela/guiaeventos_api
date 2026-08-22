@@ -18,6 +18,7 @@ public class CategoryModule : BaseModule
     {
         var group = app.MapGroup(BasePath).WithTags("Categories");
         group.MapGet("/", ListAsync);
+        group.MapGet("/highlighted", GetHighlightedAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
         group.MapPost("/", CreateAsync).RequireAuthorization("AdminOnly");
         group.MapPut("/{id:int}", UpdateAsync).RequireAuthorization("AdminOnly");
@@ -66,6 +67,19 @@ public class CategoryModule : BaseModule
         return Results.Ok(new { total, page, pageSize, items = items.Select(CategoryResponse.FromEntity) });
     }
 
+    private async Task<IResult> GetHighlightedAsync(
+        [FromServices] AppDbContext db,
+        CancellationToken ct)
+    {
+        var items = await db.Categories
+            .Where(x => !x.IsDeleted && x.IsHighlighted)
+            .OrderBy(x => x.HighlightOrder)
+            .ThenBy(x => x.Name)
+            .ToListAsync(ct);
+
+        return Results.Ok(items.Select(CategoryResponse.FromEntity));
+    }
+
     private async Task<IResult> GetByIdAsync(
         [FromServices] AppDbContext db,
         [FromRoute] int id,
@@ -92,6 +106,9 @@ public class CategoryModule : BaseModule
             CreatedBy = "system"
         };
 
+        if (request.IsHighlighted)
+            category.SetHighlight(true, request.HighlightOrder, request.HighlightColor, request.HighlightLink);
+
         db.Categories.Add(category);
         await db.SaveChangesAsync(ct);
 
@@ -113,6 +130,7 @@ public class CategoryModule : BaseModule
             return Results.Conflict("Another category with this name already exists.");
 
         category.Update(request.Name, request.Description ?? string.Empty);
+        category.SetHighlight(request.IsHighlighted, request.HighlightOrder, request.HighlightColor, request.HighlightLink);
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(CategoryResponse.FromEntity(category));

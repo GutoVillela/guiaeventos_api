@@ -8,7 +8,11 @@ public record CategoryResponse(
     string Description,
     string CreatedBy,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt
+    DateTimeOffset? UpdatedAt,
+    bool IsHighlighted,
+    int HighlightOrder,
+    string? HighlightColor,
+    string? HighlightLink
 )
 {
     public static CategoryResponse FromEntity(Category category) => new(
@@ -17,6 +21,10 @@ public record CategoryResponse(
         category.Description,
         category.CreatedBy,
         category.CreatedAt,
-        category.UpdatedAt
+        category.UpdatedAt,
+        category.IsHighlighted,
+        category.HighlightOrder,
+        category.HighlightColor,
+        category.HighlightLink
     );
 }
