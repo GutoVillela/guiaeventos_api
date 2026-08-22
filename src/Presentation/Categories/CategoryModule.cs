@@ -31,18 +31,20 @@ public class CategoryModule : BaseModule
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
-        bool? hasAdvertisements = null,
+        string? advertisementType = null,
         CancellationToken ct = default)
     {
         var query = db.Categories
             .Where(x => !x.IsDeleted)
             .AsQueryable();
 
-        if (hasAdvertisements == true)
+        if (!string.IsNullOrWhiteSpace(advertisementType))
         {
-            var catIdsWithAds = db.Set<Advertisement>()
-                .SelectMany(a => a.Categories.Select(c => c.Id));
-            query = query.Where(x => catIdsWithAds.Contains(x.Id));
+            IQueryable<int> catIds = advertisementType.Equals("Place", StringComparison.OrdinalIgnoreCase)
+                ? db.Set<Place>().SelectMany(a => a.Categories.Select(c => c.Id))
+                : db.Set<Service>().SelectMany(a => a.Categories.Select(c => c.Id));
+
+            query = query.Where(x => catIds.Contains(x.Id));
         }
 
         if (!string.IsNullOrWhiteSpace(search))
@@ -52,7 +54,7 @@ public class CategoryModule : BaseModule
         query = sortBy?.ToLower() switch
         {
             "date" => ascending ? query.OrderBy(x => x.CreatedAt) : query.OrderByDescending(x => x.CreatedAt),
-            _      => ascending ? query.OrderBy(x => x.Name) : query.OrderByDescending(x => x.Name),
+            _ => ascending ? query.OrderBy(x => x.Name) : query.OrderByDescending(x => x.Name),
         };
 
         var total = await query.CountAsync(ct);
