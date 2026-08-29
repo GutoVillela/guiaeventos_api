@@ -9,6 +9,8 @@ public class Banner : Entity
     public string? Description { get; private set; }
     public string LinkUrl { get; private set; } = string.Empty;
     public Image Image { get; private set; } = Image.Empty;
+    public Image? TabletImage { get; private set; }
+    public Image? MobileImage { get; private set; }
     public int Order { get; private set; }
     public bool IsActive { get; private set; } = true;
     public DateTimeOffset? StartsAt { get; private set; }
@@ -17,11 +19,14 @@ public class Banner : Entity
     protected Banner() { }
 
     public Banner(string title, string linkUrl, Image image, int order = 0,
-                  string? description = null, DateTimeOffset? startsAt = null, DateTimeOffset? endsAt = null)
+                  string? description = null, DateTimeOffset? startsAt = null, DateTimeOffset? endsAt = null,
+                  Image? tabletImage = null, Image? mobileImage = null)
     {
         Title = title;
         LinkUrl = linkUrl;
         Image = image;
+        TabletImage = tabletImage;
+        MobileImage = mobileImage;
         Order = order;
         Description = description;
         StartsAt = startsAt;
@@ -30,11 +35,14 @@ public class Banner : Entity
     }
 
     public void Update(string title, string linkUrl, Image image, int order,
-                       string? description = null, DateTimeOffset? startsAt = null, DateTimeOffset? endsAt = null)
+                       string? description = null, DateTimeOffset? startsAt = null, DateTimeOffset? endsAt = null,
+                       Image? tabletImage = null, Image? mobileImage = null)
     {
         Title = title;
         LinkUrl = linkUrl;
         Image = image;
+        TabletImage = tabletImage;
+        MobileImage = mobileImage;
         Order = order;
         Description = description;
         StartsAt = startsAt;

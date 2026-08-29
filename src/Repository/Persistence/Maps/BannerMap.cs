@@ -28,5 +28,17 @@ internal class BannerMap : EntityMap<Banner>
             image.Property(i => i.Url).HasColumnName("Image_Url").HasMaxLength(500).IsRequired();
             image.Property(i => i.AltText).HasColumnName("Image_AltText").HasMaxLength(300).IsRequired(false);
         });
+
+        builder.OwnsOne(x => x.TabletImage, img =>
+        {
+            img.Property(i => i.Url).HasColumnName("TabletImage_Url").HasMaxLength(500).IsRequired(false);
+            img.Property(i => i.AltText).HasColumnName("TabletImage_AltText").HasMaxLength(300).IsRequired(false);
+        });
+
+        builder.OwnsOne(x => x.MobileImage, img =>
+        {
+            img.Property(i => i.Url).HasColumnName("MobileImage_Url").HasMaxLength(500).IsRequired(false);
+            img.Property(i => i.AltText).HasColumnName("MobileImage_AltText").HasMaxLength(300).IsRequired(false);
+        });
     }
 }

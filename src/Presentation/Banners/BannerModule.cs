@@ -82,11 +82,29 @@ public class BannerModule : BaseModule
         [FromForm] DateTimeOffset? endsAt,
         IFormFile image,
         [FromForm] string? imageAltText,
+        IFormFile? tabletImage,
+        [FromForm] string? tabletImageAltText,
+        IFormFile? mobileImage,
+        [FromForm] string? mobileImageAltText,
         CancellationToken ct)
     {
         var imageUrl = await storage.UploadAsync(image, ct);
 
-        var banner = new Banner(title, linkUrl, Image.Create(imageUrl, imageAltText), order, description, startsAt, endsAt)
+        Image? tabletImg = null;
+        if (tabletImage is not null)
+        {
+            var url = await storage.UploadAsync(tabletImage, ct);
+            tabletImg = Image.Create(url, tabletImageAltText);
+        }
+
+        Image? mobileImg = null;
+        if (mobileImage is not null)
+        {
+            var url = await storage.UploadAsync(mobileImage, ct);
+            mobileImg = Image.Create(url, mobileImageAltText);
+        }
+
+        var banner = new Banner(title, linkUrl, Image.Create(imageUrl, imageAltText), order, description, startsAt, endsAt, tabletImg, mobileImg)
         {
             CreatedBy = "system"
         };
@@ -109,12 +127,17 @@ public class BannerModule : BaseModule
         [FromForm] DateTimeOffset? endsAt,
         IFormFile? image,
         [FromForm] string? imageAltText,
+        IFormFile? tabletImage,
+        [FromForm] string? tabletImageAltText,
+        IFormFile? mobileImage,
+        [FromForm] string? mobileImageAltText,
         CancellationToken ct)
     {
         var banner = await db.Banners.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (banner is null)
             return Results.NotFound();
 
+        // Imagem web (obrigatória — mantém a existente se nenhuma nova for enviada)
         Image updatedImage;
         if (image is not null)
         {
@@ -126,7 +149,35 @@ public class BannerModule : BaseModule
             updatedImage = Image.Create(banner.Image.Url, imageAltText ?? banner.Image.AltText);
         }
 
-        banner.Update(title, linkUrl, updatedImage, order, description, startsAt, endsAt);
+        // Imagem tablet (opcional — mantém a existente se nenhuma nova for enviada)
+        Image? updatedTabletImage;
+        if (tabletImage is not null)
+        {
+            var url = await storage.UploadAsync(tabletImage, ct);
+            updatedTabletImage = Image.Create(url, tabletImageAltText);
+        }
+        else
+        {
+            updatedTabletImage = banner.TabletImage is not null
+                ? Image.Create(banner.TabletImage.Url, tabletImageAltText ?? banner.TabletImage.AltText)
+                : null;
+        }
+
+        // Imagem celular (opcional — mantém a existente se nenhuma nova for enviada)
+        Image? updatedMobileImage;
+        if (mobileImage is not null)
+        {
+            var url = await storage.UploadAsync(mobileImage, ct);
+            updatedMobileImage = Image.Create(url, mobileImageAltText);
+        }
+        else
+        {
+            updatedMobileImage = banner.MobileImage is not null
+                ? Image.Create(banner.MobileImage.Url, mobileImageAltText ?? banner.MobileImage.AltText)
+                : null;
+        }
+
+        banner.Update(title, linkUrl, updatedImage, order, description, startsAt, endsAt, updatedTabletImage, updatedMobileImage);
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(BannerResponse.FromEntity(banner));
