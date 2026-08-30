@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using Presentation.Posts.Input;
+using Presentation.FileStorage;
 using Presentation.Posts.Output;
 using Repository.Persistence;
 
@@ -20,8 +20,8 @@ public class PostModule : BaseModule
         var group = app.MapGroup(BasePath).WithTags("Posts");
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
-        group.MapPost("/", CreateAsync).RequireAuthorization();
-        group.MapPut("/{id:int}", UpdateAsync).RequireAuthorization();
+        group.MapPost("/", CreateAsync).RequireAuthorization().DisableAntiforgery();
+        group.MapPut("/{id:int}", UpdateAsync).RequireAuthorization().DisableAntiforgery();
         group.MapPost("/{id:int}/publish", PublishAsync).RequireAuthorization("AdminOnly");
         group.MapDelete("/{id:int}/publish", UnpublishAsync).RequireAuthorization("AdminOnly");
         group.MapPost("/{id:int}/highlight", HighlightAsync).RequireAuthorization("AdminOnly");
@@ -92,24 +92,35 @@ public class PostModule : BaseModule
 
     private async Task<IResult> CreateAsync(
         [FromServices] AppDbContext db,
-        [FromBody] CreatePostRequest request,
+        [FromServices] IFileStorageService storage,
+        [FromForm] string title,
+        [FromForm] string slug,
+        [FromForm] string summary,
+        [FromForm] string content,
+        [FromForm] int authorId,
+        IFormFile? coverImageFile,
+        [FromForm] string? coverImageUrl,
+        [FromForm] string? coverImageAltText,
         CancellationToken ct)
     {
-        var slugExists = await db.Posts.AnyAsync(x => x.Slug == request.Slug, ct);
+        var slugExists = await db.Posts.AnyAsync(x => x.Slug == slug, ct);
         if (slugExists)
             return Results.Conflict("A post with this slug already exists.");
 
-        var authorExists = await db.Authors.AnyAsync(x => x.Id == request.AuthorId, ct);
+        var authorExists = await db.Authors.AnyAsync(x => x.Id == authorId, ct);
         if (!authorExists)
             return Results.NotFound("Author not found.");
 
-        var post = new Post(request.Title, request.Slug, request.Summary, request.Content, request.AuthorId)
-        {
-            CreatedBy = "system"
-        };
+        var post = new Post(title, slug, summary, content, authorId) { CreatedBy = "system" };
 
-        if (!string.IsNullOrWhiteSpace(request.CoverImageUrl))
-            post.SetCoverImage(Image.Create(request.CoverImageUrl, request.CoverImageAltText));
+        string? finalUrl = null;
+        if (coverImageFile is not null)
+            finalUrl = await storage.UploadAsync(coverImageFile, ct);
+        else if (!string.IsNullOrWhiteSpace(coverImageUrl))
+            finalUrl = coverImageUrl;
+
+        if (finalUrl is not null)
+            post.SetCoverImage(Image.Create(finalUrl, coverImageAltText));
 
         db.Posts.Add(post);
         await db.SaveChangesAsync(ct);
@@ -119,22 +130,36 @@ public class PostModule : BaseModule
 
     private async Task<IResult> UpdateAsync(
         [FromServices] AppDbContext db,
+        [FromServices] IFileStorageService storage,
         [FromRoute] int id,
-        [FromBody] UpdatePostRequest request,
+        [FromForm] string title,
+        [FromForm] string slug,
+        [FromForm] string summary,
+        [FromForm] string content,
+        IFormFile? coverImageFile,
+        [FromForm] string? coverImageUrl,
+        [FromForm] string? coverImageAltText,
         CancellationToken ct)
     {
         var post = await db.Posts.Include(x => x.Author).FirstOrDefaultAsync(x => x.Id == id, ct);
         if (post is null)
             return Results.NotFound();
 
-        var slugConflict = await db.Posts.AnyAsync(x => x.Slug == request.Slug && x.Id != id, ct);
+        var slugConflict = await db.Posts.AnyAsync(x => x.Slug == slug && x.Id != id, ct);
         if (slugConflict)
             return Results.Conflict("Another post with this slug already exists.");
 
-        post.Update(request.Title, request.Slug, request.Summary, request.Content);
+        post.Update(title, slug, summary, content);
 
-        if (!string.IsNullOrWhiteSpace(request.CoverImageUrl))
-            post.SetCoverImage(Image.Create(request.CoverImageUrl, request.CoverImageAltText));
+        if (coverImageFile is not null)
+        {
+            var uploadedUrl = await storage.UploadAsync(coverImageFile, ct);
+            post.SetCoverImage(Image.Create(uploadedUrl, coverImageAltText));
+        }
+        else if (!string.IsNullOrWhiteSpace(coverImageUrl))
+        {
+            post.SetCoverImage(Image.Create(coverImageUrl, coverImageAltText));
+        }
 
         await db.SaveChangesAsync(ct);
 
