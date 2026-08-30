@@ -41,6 +41,7 @@ public class ServiceModule : BaseModule
         string? search = null,
         string? status = null,
         bool? isHighlighted = null,
+        int? advertiserId = null,
         string? sortBy = null,
         string? sortOrder = null,
         CancellationToken ct = default)
@@ -50,6 +51,9 @@ public class ServiceModule : BaseModule
             .Include(x => x.Categories)
             .Include(x => x.Images)
             .AsQueryable();
+
+        if (advertiserId.HasValue)
+            query = query.Where(x => x.Advertiser.Id == advertiserId.Value);
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(x => x.Name.Contains(search));

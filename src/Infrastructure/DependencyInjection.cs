@@ -1,4 +1,6 @@
 ﻿using Infrastructure.BackgroundJobs;
+using Infrastructure.Email;
+using Shared.Email;
 using Infrastructure.FileStorage;
 using Microsoft.Extensions.DependencyInjection;
 using Presentation.FileStorage;
@@ -11,6 +13,7 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, bool isProduction)
     {
         AddBackgroundServices(services);
+        services.AddTransient<IEmailService, SmtpEmailService>();
         if(isProduction)
         {
             services.AddSingleton<IFileStorageService, GoogleCloudFileStorageService>();

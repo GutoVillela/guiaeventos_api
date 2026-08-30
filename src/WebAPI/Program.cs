@@ -82,6 +82,7 @@ using (var scope = app.Services.CreateScope())
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
+        logger.LogInformation("Aplicando migrations...");
         await db.Database.MigrateAsync();
         logger.LogInformation("Migrations aplicadas com sucesso.");
     }

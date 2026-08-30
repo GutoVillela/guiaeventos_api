@@ -1,0 +1,90 @@
+services:
+  database:
+    image: mysql:8.0
+    container_name: guiaeventos_database
+    ports:
+      - 3319:3306
+    environment:
+      MYSQL_DATABASE: guiaeventos_db
+      MYSQL_PASSWORD: 3v3nt@$DB
+      MYSQL_ROOT_PASSWORD: 3v3nt@$DB
+    volumes:
+      - guiaeventos_data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost']
+      interval: 10s
+      timeout: 20s
+      retries: 10
+      start_period: 30s
+    stop_grace_period: 1m
+    command: --innodb_flush_log_at_trx_commit=1 --innodb_flush_method=O_DIRECT
+    networks:
+      - guiaeventos
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        # reservations:
+        #   cpus: '1'
+        #   memory: 1G
+
+  webapi:
+    image: gutovillela/guiaeventos-webapi:0.0.12
+    container_name: guiaeventos_webapi
+    ports:
+      - 50119:8080
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__MySQL: 'Server=database;Port=3306;Database=guiaeventos_db;User=root;Password=3v3nt@$DB;'
+      FileStorage__LocalPath: '/app/uploads'
+      FileStorage__UrlPrefix: /uploads
+      # ── Google Cloud Storage (produção) ──────────────────────────────────────
+      GoogleCloud__ProjectId: ${GCP_PROJECT_ID:-guia-eventos}
+      GoogleCloud__BucketName: ${GCP_BUCKET_NAME:-images-guia-eventos}
+      GoogleCloud__Secret__AccountService__ProjectId: ${GCP_PROJECT_ID:-guia-eventos}
+      GoogleCloud__Secret__AccountService__PrivateKeyId: ${GCP_SA_PRIVATE_KEY_ID}
+      GoogleCloud__Secret__AccountService__PrivateKey: ${GCP_SA_PRIVATE_KEY}
+      GoogleCloud__Secret__AccountService__ClientEmail: ${GCP_SA_CLIENT_EMAIL}
+      GoogleCloud__Secret__AccountService__ClientId: ${GCP_SA_CLIENT_ID}
+      GoogleCloud__Secret__AccountService__ClientX509CertUrl: ${GCP_SA_CLIENT_X509_CERT_URL}
+      # ── Email (produção) ──────────────────────────────────────────────────────
+      Email__Host: ${EMAIL_HOST}
+      Email__Port: ${EMAIL_PORT:-587}
+      Email__EnableSsl: ${EMAIL_ENABLE_SSL:-false}
+      Email__Username: ${EMAIL_USERNAME}
+      Email__Password: ${EMAIL_PASSWORD}
+      Email__FromAddress: ${EMAIL_FROM_ADDRESS}
+      Email__FromName: ${EMAIL_FROM_NAME:-Guia Evento Escolar}
+    volumes:
+      - guiaeventos_uploads:/app/uploads
+    networks:
+      - guiaeventos
+
+  frontend:
+    image: gutovillela/guiaeventos-frontend:0.0.19
+    container_name: guiaeventos_frontend
+    ports:
+      - 5019:4000
+    depends_on:
+      database:
+        condition: service_healthy
+      webapi:
+        condition: service_started
+    environment:
+      - INTERNAL_API_URL=http://webapi:8080
+      - NG_ALLOWED_HOSTS=localhost,guiaeventoescolar.com.br
+    networks:
+      - guiaeventos
+
+networks:
+  guiaeventos:
+    driver: bridge
+
+volumes:
+  guiaeventos_data:
+    driver: local
+  guiaeventos_uploads:
+    driver: local
