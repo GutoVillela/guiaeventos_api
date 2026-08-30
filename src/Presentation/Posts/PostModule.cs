@@ -20,6 +20,7 @@ public class PostModule : BaseModule
         var group = app.MapGroup(BasePath).WithTags("Posts");
         group.MapGet("/", ListAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
+        group.MapGet("/by-slug/{slug}", GetBySlugAsync);
         group.MapPost("/", CreateAsync).RequireAuthorization().DisableAntiforgery();
         group.MapPut("/{id:int}", UpdateAsync).RequireAuthorization().DisableAntiforgery();
         group.MapPost("/{id:int}/publish", PublishAsync).RequireAuthorization("AdminOnly");
@@ -73,6 +74,21 @@ public class PostModule : BaseModule
             .ToListAsync(ct);
 
         return Results.Ok(new { total, page, pageSize, items = items.Select(PostResponse.FromEntity) });
+    }
+
+    private async Task<IResult> GetBySlugAsync(
+        [FromServices] AppDbContext db,
+        [FromRoute] string slug,
+        CancellationToken ct)
+    {
+        var post = await db.Posts
+            .Include(x => x.Author)
+            .FirstOrDefaultAsync(x => x.Slug == slug && !x.IsDeleted, ct);
+
+        if (post is null)
+            return Results.NotFound();
+
+        return Results.Ok(PostResponse.FromEntity(post));
     }
 
     private async Task<IResult> GetByIdAsync(
