@@ -15,6 +15,7 @@ public record PostResponse(
     bool IsPublished,
     bool IsHighlighted,
     DateTimeOffset? PublishedAt,
+    IReadOnlyList<PostCategorySummary> Categories,
     string CreatedBy,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt
@@ -33,6 +34,7 @@ public record PostResponse(
         post.IsPublished,
         post.IsHighlighted,
         post.PublishedAt,
+        post.Categories.Select(PostCategorySummary.FromEntity).ToList(),
         post.CreatedBy,
         post.CreatedAt,
         post.UpdatedAt

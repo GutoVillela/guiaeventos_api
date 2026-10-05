@@ -13,6 +13,7 @@ public class Post : Entity
     public DateTimeOffset? PublishedAt { get; private set; }
     public int AuthorId { get; private set; }
     public Author? Author { get; private set; }
+    public IList<PostCategory> Categories { get; private set; } = new List<PostCategory>();
 
     protected Post() { }
 
@@ -58,6 +59,14 @@ public class Post : Entity
     public void SetHighlighted(bool value)
     {
         IsHighlighted = value;
+        UpdatedAt = DateTimeOffset.UtcNow;
+    }
+
+    public void SetCategories(IEnumerable<PostCategory> categories)
+    {
+        Categories.Clear();
+        foreach (var category in categories)
+            Categories.Add(category);
         UpdatedAt = DateTimeOffset.UtcNow;
     }
 }

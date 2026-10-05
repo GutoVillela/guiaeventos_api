@@ -37,6 +37,7 @@ public class PostModule : BaseModule
         bool publishedOnly = false,
         int? authorId = null,
         bool? isHighlighted = null,
+        int? categoryId = null,
         string? search = null,
         string? sortBy = null,
         string? sortOrder = null,
@@ -45,6 +46,7 @@ public class PostModule : BaseModule
         var query = db.Posts
             .Where(x => !x.IsDeleted)
             .Include(x => x.Author)
+            .Include(x => x.Categories)
             .AsQueryable();
 
         if (publishedOnly)
@@ -55,6 +57,9 @@ public class PostModule : BaseModule
 
         if (isHighlighted.HasValue)
             query = query.Where(x => x.IsHighlighted == isHighlighted.Value);
+
+        if (categoryId.HasValue)
+            query = query.Where(x => x.Categories.Any(c => c.Id == categoryId.Value));
 
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(x => x.Title.Contains(search));
@@ -83,6 +88,7 @@ public class PostModule : BaseModule
     {
         var post = await db.Posts
             .Include(x => x.Author)
+            .Include(x => x.Categories)
             .FirstOrDefaultAsync(x => x.Slug == slug && !x.IsDeleted, ct);
 
         if (post is null)
@@ -98,6 +104,7 @@ public class PostModule : BaseModule
     {
         var post = await db.Posts
             .Include(x => x.Author)
+            .Include(x => x.Categories)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
 
         if (post is null)
@@ -117,6 +124,7 @@ public class PostModule : BaseModule
         IFormFile? coverImageFile,
         [FromForm] string? coverImageUrl,
         [FromForm] string? coverImageAltText,
+        [FromForm] string? categoryIds,
         CancellationToken ct)
     {
         var slugExists = await db.Posts.AnyAsync(x => x.Slug == slug, ct);
@@ -138,6 +146,10 @@ public class PostModule : BaseModule
         if (finalUrl is not null)
             post.SetCoverImage(Image.Create(finalUrl, coverImageAltText));
 
+        var categories = await LoadCategoriesAsync(db, categoryIds, ct);
+        if (categories.Count > 0)
+            post.SetCategories(categories);
+
         db.Posts.Add(post);
         await db.SaveChangesAsync(ct);
 
@@ -155,9 +167,13 @@ public class PostModule : BaseModule
         IFormFile? coverImageFile,
         [FromForm] string? coverImageUrl,
         [FromForm] string? coverImageAltText,
+        [FromForm] string? categoryIds,
         CancellationToken ct)
     {
-        var post = await db.Posts.Include(x => x.Author).FirstOrDefaultAsync(x => x.Id == id, ct);
+        var post = await db.Posts
+            .Include(x => x.Author)
+            .Include(x => x.Categories)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
         if (post is null)
             return Results.NotFound();
 
@@ -175,6 +191,12 @@ public class PostModule : BaseModule
         else if (!string.IsNullOrWhiteSpace(coverImageUrl))
         {
             post.SetCoverImage(Image.Create(coverImageUrl, coverImageAltText));
+        }
+
+        if (categoryIds is not null)
+        {
+            var categories = await LoadCategoriesAsync(db, categoryIds, ct);
+            post.SetCategories(categories);
         }
 
         await db.SaveChangesAsync(ct);
@@ -258,5 +280,30 @@ public class PostModule : BaseModule
         await db.SaveChangesAsync(ct);
 
         return Results.NoContent();
+    }
+
+    private static async Task<List<PostCategory>> LoadCategoriesAsync(AppDbContext db, string? categoryIds, CancellationToken ct)
+    {
+        var ids = ParseIds(categoryIds);
+        if (ids.Count == 0)
+            return new List<PostCategory>();
+
+        return await db.PostCategories
+            .Where(c => ids.Contains(c.Id))
+            .ToListAsync(ct);
+    }
+
+    private static List<int> ParseIds(string? csv)
+    {
+        if (string.IsNullOrWhiteSpace(csv))
+            return new List<int>();
+
+        return csv
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => int.TryParse(s, out var n) ? n : (int?)null)
+            .Where(n => n.HasValue)
+            .Select(n => n!.Value)
+            .Distinct()
+            .ToList();
     }
 }

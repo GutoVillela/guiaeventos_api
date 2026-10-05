@@ -41,5 +41,9 @@ internal class PostMap : EntityMap<Post>
             .HasForeignKey(x => x.AuthorId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(x => x.Categories)
+            .WithMany(c => c.Posts)
+            .UsingEntity(j => j.ToTable("post_post_categories"));
     }
 }
