@@ -8,6 +8,9 @@ public record PostCategoryResponse(
     string Slug,
     string? Color,
     bool IsActive,
+    bool IsHighlighted,
+    int HighlightOrder,
+    string? HighlightIcon,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt
 )
@@ -18,6 +21,9 @@ public record PostCategoryResponse(
         category.Slug,
         category.Color,
         category.IsActive,
+        category.IsHighlighted,
+        category.HighlightOrder,
+        category.HighlightIcon,
         category.CreatedAt,
         category.UpdatedAt
     );

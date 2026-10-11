@@ -544,6 +544,15 @@ namespace Repository.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("varchar(50)");
 
+                    b.Property<string>("HighlightIcon")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("HighlightOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("tinyint(1)")
@@ -551,6 +560,11 @@ namespace Repository.Migrations
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsHighlighted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false);
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -568,6 +582,8 @@ namespace Repository.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("IsActive");
+
+                    b.HasIndex("IsHighlighted");
 
                     b.HasIndex("Name")
                         .IsUnique();

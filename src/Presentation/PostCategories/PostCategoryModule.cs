@@ -20,6 +20,7 @@ public class PostCategoryModule : BaseModule
     {
         var group = app.MapGroup(BasePath).WithTags("PostCategories");
         group.MapGet("/", ListAsync);
+        group.MapGet("/highlighted", GetHighlightedAsync);
         group.MapGet("/{id:int}", GetByIdAsync);
         group.MapPost("/", CreateAsync).RequireAuthorization("AdminOnly");
         group.MapPut("/{id:int}", UpdateAsync).RequireAuthorization("AdminOnly");
@@ -64,6 +65,19 @@ public class PostCategoryModule : BaseModule
         return Results.Ok(new { total, page, pageSize, items = items.Select(PostCategoryResponse.FromEntity) });
     }
 
+    private async Task<IResult> GetHighlightedAsync(
+        [FromServices] AppDbContext db,
+        CancellationToken ct)
+    {
+        var items = await db.PostCategories
+            .Where(x => !x.IsDeleted && x.IsActive && x.IsHighlighted)
+            .OrderBy(x => x.HighlightOrder)
+            .ThenBy(x => x.Name)
+            .ToListAsync(ct);
+
+        return Results.Ok(items.Select(PostCategoryResponse.FromEntity));
+    }
+
     private async Task<IResult> GetByIdAsync(
         [FromServices] AppDbContext db,
         [FromRoute] int id,
@@ -92,6 +106,9 @@ public class PostCategoryModule : BaseModule
         var slug = await GenerateUniqueSlugAsync(db, name, null, ct);
         var category = new PostCategory(name, slug, request.Color) { CreatedBy = "system" };
 
+        if (request.IsHighlighted)
+            category.SetHighlight(true, request.HighlightOrder, request.HighlightIcon);
+
         db.PostCategories.Add(category);
         await db.SaveChangesAsync(ct);
 
@@ -118,6 +135,7 @@ public class PostCategoryModule : BaseModule
 
         var slug = await GenerateUniqueSlugAsync(db, name, id, ct);
         category.Update(name, slug, request.Color);
+        category.SetHighlight(request.IsHighlighted, request.HighlightOrder, request.HighlightIcon);
         await db.SaveChangesAsync(ct);
 
         return Results.Ok(PostCategoryResponse.FromEntity(category));

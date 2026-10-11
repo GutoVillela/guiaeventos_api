@@ -16,9 +16,13 @@ internal class PostCategoryMap : EntityMap<PostCategory>
         builder.Property(x => x.Slug).HasMaxLength(250).IsRequired();
         builder.Property(x => x.Color).HasMaxLength(20).IsRequired(false);
         builder.Property(x => x.IsActive).HasDefaultValue(true);
+        builder.Property(x => x.IsHighlighted).HasDefaultValue(false);
+        builder.Property(x => x.HighlightOrder).HasDefaultValue(0);
+        builder.Property(x => x.HighlightIcon).HasMaxLength(50).IsRequired(false);
 
         builder.HasIndex(x => x.Name).IsUnique();
         builder.HasIndex(x => x.Slug).IsUnique();
         builder.HasIndex(x => x.IsActive);
+        builder.HasIndex(x => x.IsHighlighted);
     }
 }
